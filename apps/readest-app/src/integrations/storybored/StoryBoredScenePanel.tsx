@@ -1,0 +1,353 @@
+'use client';
+
+import clsx from 'clsx';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Ban, ImagePlus, RefreshCcw, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+
+import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import { createStoryBoredReaderClient, isStoryBoredReaderEnabled } from './client';
+import type {
+  StoryBoredPassage,
+  StoryBoredSceneGeneration,
+  StoryBoredSceneStatus,
+  StoryBoredStylePreset,
+} from './types';
+
+const ACTIVE_STATUSES = new Set<StoryBoredSceneStatus>(['queued', 'prompting', 'generating']);
+const RETRYABLE_STATUSES = new Set<StoryBoredSceneStatus>(['failed', 'cancelled']);
+
+const STYLE_OPTIONS: Array<{ value: StoryBoredStylePreset; label: string }> = [
+  { value: 'cinematic-literary', label: 'Cinematic literary' },
+  { value: 'watercolor-illustration', label: 'Watercolor illustration' },
+  { value: 'dark-fantasy', label: 'Dark fantasy' },
+  { value: 'soft-storybook', label: 'Soft storybook' },
+  { value: 'realistic-concept-art', label: 'Realistic concept art' },
+  { value: 'monochrome-sketch', label: 'Monochrome sketch' },
+];
+
+interface StoryBoredScenePanelProps {
+  isOpen: boolean;
+  passage: StoryBoredPassage | null;
+  onClose: () => void;
+}
+
+function getStatusLabel(status?: StoryBoredSceneStatus): string {
+  switch (status) {
+    case 'queued':
+      return 'Queued';
+    case 'prompting':
+      return 'Building prompt';
+    case 'generating':
+      return 'Generating';
+    case 'completed':
+      return 'Completed';
+    case 'failed':
+      return 'Failed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return 'Ready';
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'StoryBored request failed.';
+}
+
+const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
+  isOpen,
+  passage,
+  onClose,
+}) => {
+  const _ = useTranslation();
+  const { token } = useAuth();
+  const [stylePreset, setStylePreset] = useState<StoryBoredStylePreset>('cinematic-literary');
+  const [generation, setGeneration] = useState<StoryBoredSceneGeneration | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const client = useMemo(
+    () => createStoryBoredReaderClient(token ? { accessToken: token } : {}),
+    [token],
+  );
+  const passageKey = useMemo(
+    () =>
+      passage
+        ? [passage.bookId, passage.location, passage.selectedText.slice(0, 80)].join('|')
+        : '',
+    [passage],
+  );
+  const isActive = generation ? ACTIVE_STATUSES.has(generation.status) : false;
+  const canRetry = generation ? RETRYABLE_STATUSES.has(generation.status) : false;
+  const imageUrl = generation?.image?.url;
+
+  useEffect(() => {
+    setGeneration(null);
+    setError(null);
+    setFeedbackSubmitted(false);
+    setStylePreset(passage?.stylePreset ?? 'cinematic-literary');
+  }, [passageKey, passage?.stylePreset]);
+
+  useEffect(() => {
+    if (!generation || !ACTIVE_STATUSES.has(generation.status)) return;
+
+    const interval = window.setInterval(async () => {
+      try {
+        setGeneration(await client.getSceneGeneration(generation.id));
+        setError(null);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      }
+    }, 2000);
+
+    return () => window.clearInterval(interval);
+  }, [client, generation]);
+
+  if (!isOpen) return null;
+
+  const handleGenerate = async () => {
+    if (!passage) return;
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      setGeneration(await client.createSceneGeneration({ ...passage, stylePreset }));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!generation) return;
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      setGeneration(await client.cancelSceneGeneration(generation.id));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!generation) return;
+    setIsSubmitting(true);
+    setError(null);
+    setFeedbackSubmitted(false);
+
+    try {
+      setGeneration(await client.retrySceneGeneration(generation.id));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFeedback = async (rating: number, matchedScene: boolean) => {
+    if (!generation || generation.status !== 'completed') return;
+    setIsFeedbackSubmitting(true);
+    setError(null);
+
+    try {
+      await client.submitFeedback(generation.id, {
+        rating,
+        matchedScene,
+        category: matchedScene ? 'matched-scene' : 'wrong-scene',
+      });
+      setFeedbackSubmitted(true);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsFeedbackSubmitting(false);
+    }
+  };
+
+  return (
+    <aside
+      aria-label={_('StoryBored scene panel')}
+      className={clsx(
+        'bg-base-100 text-base-content border-base-300 fixed z-30 flex flex-col shadow-2xl',
+        'inset-x-0 bottom-0 max-h-[82vh] rounded-t-2xl border-t',
+        'sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:max-h-none sm:w-[min(420px,calc(100vw-2rem))] sm:rounded-none sm:border-l sm:border-t-0',
+      )}
+    >
+      <header className='border-base-300 flex min-h-14 items-center justify-between gap-3 border-b px-4'>
+        <div className='min-w-0'>
+          <h2 className='truncate text-base font-semibold'>{_('StoryBored')}</h2>
+          <p className='text-base-content/60 truncate text-xs'>
+            {_(getStatusLabel(generation?.status))}
+          </p>
+        </div>
+        <button
+          type='button'
+          className='btn btn-ghost btn-sm h-10 min-h-10 w-10 p-0'
+          aria-label={_('Close')}
+          onClick={onClose}
+        >
+          <X className='size-5' />
+        </button>
+      </header>
+
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        <section className='border-base-300 border-b p-4'>
+          <div className='mb-3 flex items-center justify-between gap-3'>
+            <span className='text-base-content/60 text-xs font-semibold uppercase tracking-wide'>
+              {_('Passage')}
+            </span>
+            {passage?.bookTitle && (
+              <span className='text-base-content/60 truncate text-xs'>{passage.bookTitle}</span>
+            )}
+          </div>
+          <p className='line-clamp-5 whitespace-pre-wrap text-sm leading-6'>
+            {passage?.selectedText || _('No passage selected')}
+          </p>
+          {passage?.chapter && (
+            <p className='text-base-content/60 mt-3 truncate text-xs'>{passage.chapter}</p>
+          )}
+        </section>
+
+        <section className='border-base-300 border-b p-4'>
+          <label className='text-base-content/60 mb-2 block text-xs font-semibold uppercase tracking-wide'>
+            {_('Style')}
+          </label>
+          <select
+            className='select select-bordered h-11 min-h-11 w-full text-sm'
+            value={stylePreset}
+            disabled={isActive || isSubmitting}
+            onChange={(event) => setStylePreset(event.target.value as StoryBoredStylePreset)}
+          >
+            {STYLE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {_(option.label)}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section aria-live='polite' className='border-base-300 border-b p-4'>
+          <div className='mb-3 flex items-center justify-between gap-3'>
+            <span className='text-base-content/60 text-xs font-semibold uppercase tracking-wide'>
+              {_('Scene')}
+            </span>
+            <span className='bg-base-200 rounded-full px-2.5 py-1 text-xs'>
+              {_(getStatusLabel(generation?.status))}
+            </span>
+          </div>
+
+          {!generation && (
+            <div className='border-base-300 text-base-content/60 flex min-h-40 items-center justify-center rounded-md border border-dashed p-6 text-center text-sm'>
+              {_('Choose a style and generate a scene.')}
+            </div>
+          )}
+
+          {generation && !imageUrl && (
+            <div className='bg-base-200 flex min-h-40 flex-col items-center justify-center gap-3 rounded-md p-6 text-center'>
+              {isActive ? (
+                <span className='loading loading-spinner loading-md' aria-hidden='true' />
+              ) : (
+                <ImagePlus className='text-base-content/50 size-8' />
+              )}
+              <p className='text-base-content/70 text-sm'>
+                {generation.failureReason || _(getStatusLabel(generation.status))}
+              </p>
+            </div>
+          )}
+
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={_('Generated scene')}
+              className='aspect-square w-full rounded-md object-cover'
+            />
+          )}
+
+          {error && <p className='text-error mt-3 text-sm'>{error}</p>}
+        </section>
+
+        {generation?.status === 'completed' && (
+          <section className='p-4'>
+            <span className='text-base-content/60 mb-3 block text-xs font-semibold uppercase tracking-wide'>
+              {_('Feedback')}
+            </span>
+            {feedbackSubmitted ? (
+              <p className='text-base-content/70 text-sm'>{_('Feedback saved')}</p>
+            ) : (
+              <div className='grid grid-cols-2 gap-2'>
+                <button
+                  type='button'
+                  className='btn btn-outline h-11 min-h-11'
+                  disabled={isFeedbackSubmitting}
+                  onClick={() => handleFeedback(5, true)}
+                >
+                  <ThumbsUp className='size-4' />
+                  {_('Matched')}
+                </button>
+                <button
+                  type='button'
+                  className='btn btn-outline h-11 min-h-11'
+                  disabled={isFeedbackSubmitting}
+                  onClick={() => handleFeedback(2, false)}
+                >
+                  <ThumbsDown className='size-4' />
+                  {_('Missed')}
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
+
+      <footer className='border-base-300 flex gap-2 border-t p-4'>
+        {!generation && (
+          <button
+            type='button'
+            className='btn btn-primary h-11 min-h-11 flex-1'
+            disabled={!passage || isSubmitting || !isStoryBoredReaderEnabled()}
+            onClick={handleGenerate}
+          >
+            <ImagePlus className='size-4' />
+            {isSubmitting ? _('Generating') : _('Generate')}
+          </button>
+        )}
+        {generation && isActive && (
+          <button
+            type='button'
+            className='btn btn-outline h-11 min-h-11 flex-1'
+            disabled={isSubmitting}
+            onClick={handleCancel}
+          >
+            <Ban className='size-4' />
+            {_('Cancel')}
+          </button>
+        )}
+        {generation && canRetry && (
+          <button
+            type='button'
+            className='btn btn-primary h-11 min-h-11 flex-1'
+            disabled={isSubmitting}
+            onClick={handleRetry}
+          >
+            <RefreshCcw className='size-4' />
+            {_('Retry')}
+          </button>
+        )}
+        {generation?.status === 'completed' && (
+          <button type='button' className='btn btn-ghost h-11 min-h-11 flex-1' disabled>
+            <Star className='size-4' />
+            {_('Saved')}
+          </button>
+        )}
+      </footer>
+    </aside>
+  );
+};
+
+export default StoryBoredScenePanel;

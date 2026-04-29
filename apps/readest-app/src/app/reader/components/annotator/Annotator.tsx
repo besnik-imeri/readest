@@ -47,6 +47,10 @@ import TranslatorPopup from './TranslatorPopup';
 import useShortcuts from '@/hooks/useShortcuts';
 import ProofreadPopup from './ProofreadPopup';
 import ExportMarkdownDialog from './ExportMarkdownDialog';
+import StoryBoredScenePanel from '@/integrations/storybored/StoryBoredScenePanel';
+import { isStoryBoredReaderEnabled } from '@/integrations/storybored/client';
+import { createStoryBoredPassage } from '@/integrations/storybored/passage';
+import type { StoryBoredPassage } from '@/integrations/storybored/types';
 
 const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const _ = useTranslation();
@@ -93,6 +97,8 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     booknotes: BookNote[];
     booknoteGroups: { [href: string]: BooknoteGroup };
   } | null>(null);
+  const [showStoryBoredPanel, setShowStoryBoredPanel] = useState(false);
+  const [storyBoredPassage, setStoryBoredPassage] = useState<StoryBoredPassage | null>(null);
 
   const [selectedStyle, setSelectedStyle] = useState<HighlightStyle>(
     settings.globalReadSettings.highlightStyle,
@@ -814,6 +820,24 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     }
   };
 
+  const handleStoryBored = () => {
+    if (!selection || !selection.text) return;
+    const cfi = selection.cfi ?? view?.getCFI(selection.index, selection.range);
+    const storyBoredSelection = cfi ? { ...selection, cfi } : selection;
+
+    setStoryBoredPassage(
+      createStoryBoredPassage({
+        bookKey,
+        progress,
+        selection: storyBoredSelection,
+        ...(bookData.book ? { book: bookData.book } : {}),
+        ...(bookData.bookDoc ? { bookDoc: bookData.bookDoc } : {}),
+      }),
+    );
+    setShowStoryBoredPanel(true);
+    handleDismissPopupAndSelection();
+  };
+
   const handleStartEditAnnotation = useCallback(() => {
     setShowAnnotPopup(false);
   }, []);
@@ -968,6 +992,13 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           onClick: handleProofread,
           disabled: bookData.book?.format !== 'EPUB',
         };
+      case 'storybored':
+        return {
+          tooltipText: _(label),
+          Icon,
+          onClick: handleStoryBored,
+          visible: isStoryBoredReaderEnabled(),
+        };
       default:
         return { tooltipText: '', Icon, onClick: () => {} };
     }
@@ -1061,6 +1092,11 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           onExport={handleConfirmExport}
         />
       )}
+      <StoryBoredScenePanel
+        isOpen={showStoryBoredPanel}
+        passage={storyBoredPassage}
+        onClose={() => setShowStoryBoredPanel(false)}
+      />
     </div>
   );
 };
