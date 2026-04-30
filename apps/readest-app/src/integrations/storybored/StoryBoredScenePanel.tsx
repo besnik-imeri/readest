@@ -2,17 +2,23 @@
 
 import clsx from 'clsx';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Ban, ImagePlus, RefreshCcw, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { Ban, ImagePlus, RefreshCcw, Send, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { createStoryBoredReaderClient, isStoryBoredReaderEnabled } from './client';
+import {
+  buildStoryBoredFeedbackPayload,
+  isStoryBoredFeedbackDraftReady,
+  type StoryBoredFeedbackDraft,
+} from './feedback';
 import {
   clearStoryBoredSceneSession,
   isStoryBoredSceneActive,
   writeStoryBoredSceneSession,
 } from './session';
 import type {
+  StoryBoredFeedbackCategory,
   StoryBoredPassage,
   StoryBoredSceneGeneration,
   StoryBoredSceneStatus,
@@ -30,6 +36,22 @@ const STYLE_OPTIONS: Array<{ value: StoryBoredStylePreset; label: string }> = [
   { value: 'realistic-concept-art', label: 'Realistic concept art' },
   { value: 'monochrome-sketch', label: 'Monochrome sketch' },
 ];
+
+const FEEDBACK_CATEGORY_OPTIONS: Array<{ value: StoryBoredFeedbackCategory; label: string }> = [
+  { value: 'matched-scene', label: 'Matched scene' },
+  { value: 'wrong-scene', label: 'Wrong scene' },
+  { value: 'style-mismatch', label: 'Style mismatch' },
+  { value: 'low-quality', label: 'Low quality' },
+  { value: 'unsafe-or-inappropriate', label: 'Unsafe' },
+  { value: 'other', label: 'Other' },
+];
+
+const DEFAULT_FEEDBACK_DRAFT: StoryBoredFeedbackDraft = {
+  rating: 4,
+  matchedScene: null,
+  category: '',
+  comment: '',
+};
 
 interface StoryBoredScenePanelProps {
   isOpen: boolean;
@@ -76,6 +98,8 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] =
+    useState<StoryBoredFeedbackDraft>(DEFAULT_FEEDBACK_DRAFT);
   const [error, setError] = useState<string | null>(null);
 
   const client = useMemo(
@@ -99,6 +123,7 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     onGenerationChange?.(null);
     setError(null);
     setFeedbackSubmitted(false);
+    setFeedbackDraft(DEFAULT_FEEDBACK_DRAFT);
     setStylePreset(passage?.stylePreset ?? 'cinematic-literary');
   }, [generationId, onGenerationChange, passageKey, passage?.stylePreset]);
 
@@ -165,6 +190,8 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     if (!passage) return;
     setIsSubmitting(true);
     setError(null);
+    setFeedbackSubmitted(false);
+    setFeedbackDraft(DEFAULT_FEEDBACK_DRAFT);
 
     try {
       const nextGeneration = await client.createSceneGeneration({ ...passage, stylePreset });
@@ -198,6 +225,7 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     setIsSubmitting(true);
     setError(null);
     setFeedbackSubmitted(false);
+    setFeedbackDraft(DEFAULT_FEEDBACK_DRAFT);
 
     try {
       const nextGeneration = await client.retrySceneGeneration(generation.id);
@@ -210,17 +238,30 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     }
   };
 
-  const handleFeedback = async (rating: number, matchedScene: boolean) => {
+  const handleFeedbackMatch = (matchedScene: boolean) => {
+    setFeedbackDraft((draft) => ({
+      ...draft,
+      matchedScene,
+      rating: matchedScene ? Math.max(draft.rating, 4) : Math.min(draft.rating, 2),
+      category:
+        matchedScene && !draft.category
+          ? 'matched-scene'
+          : !matchedScene && (!draft.category || draft.category === 'matched-scene')
+            ? 'wrong-scene'
+            : draft.category,
+    }));
+  };
+
+  const handleFeedback = async () => {
     if (!generation || generation.status !== 'completed') return;
+    const feedback = buildStoryBoredFeedbackPayload(feedbackDraft);
+    if (!feedback || !isStoryBoredFeedbackDraftReady(feedbackDraft)) return;
+
     setIsFeedbackSubmitting(true);
     setError(null);
 
     try {
-      await client.submitFeedback(generation.id, {
-        rating,
-        matchedScene,
-        category: matchedScene ? 'matched-scene' : 'wrong-scene',
-      });
+      await client.submitFeedback(generation.id, feedback);
       setFeedbackSubmitted(true);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -339,24 +380,98 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
             {feedbackSubmitted ? (
               <p className='text-base-content/70 text-sm'>{_('Feedback saved')}</p>
             ) : (
-              <div className='grid grid-cols-2 gap-2'>
+              <div className='space-y-3'>
+                <div className='grid grid-cols-2 gap-2'>
+                  <button
+                    type='button'
+                    className={clsx(
+                      'btn h-11 min-h-11',
+                      feedbackDraft.matchedScene === true ? 'btn-primary' : 'btn-outline',
+                    )}
+                    disabled={isFeedbackSubmitting}
+                    onClick={() => handleFeedbackMatch(true)}
+                  >
+                    <ThumbsUp className='size-4' />
+                    {_('Matched')}
+                  </button>
+                  <button
+                    type='button'
+                    className={clsx(
+                      'btn h-11 min-h-11',
+                      feedbackDraft.matchedScene === false ? 'btn-primary' : 'btn-outline',
+                    )}
+                    disabled={isFeedbackSubmitting}
+                    onClick={() => handleFeedbackMatch(false)}
+                  >
+                    <ThumbsDown className='size-4' />
+                    {_('Missed')}
+                  </button>
+                </div>
+                <label className='block'>
+                  <span className='text-base-content/60 mb-1 block text-xs font-semibold uppercase tracking-wide'>
+                    {_('Rating')} {feedbackDraft.rating}/5
+                  </span>
+                  <input
+                    type='range'
+                    min='1'
+                    max='5'
+                    step='1'
+                    className='range range-primary range-sm'
+                    value={feedbackDraft.rating}
+                    disabled={isFeedbackSubmitting}
+                    onChange={(event) =>
+                      setFeedbackDraft((draft) => ({
+                        ...draft,
+                        rating: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </label>
+                <label className='block'>
+                  <span className='text-base-content/60 mb-1 block text-xs font-semibold uppercase tracking-wide'>
+                    {_('Reason')}
+                  </span>
+                  <select
+                    className='select select-bordered h-11 min-h-11 w-full text-sm'
+                    value={feedbackDraft.category}
+                    disabled={isFeedbackSubmitting}
+                    onChange={(event) =>
+                      setFeedbackDraft((draft) => ({
+                        ...draft,
+                        category: event.target.value as StoryBoredFeedbackDraft['category'],
+                      }))
+                    }
+                  >
+                    <option value=''>{_('Choose reason')}</option>
+                    {FEEDBACK_CATEGORY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {_(option.label)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className='block'>
+                  <span className='text-base-content/60 mb-1 block text-xs font-semibold uppercase tracking-wide'>
+                    {_('Notes')}
+                  </span>
+                  <textarea
+                    className='textarea textarea-bordered min-h-20 w-full resize-none text-sm'
+                    maxLength={2000}
+                    value={feedbackDraft.comment}
+                    disabled={isFeedbackSubmitting}
+                    onChange={(event) =>
+                      setFeedbackDraft((draft) => ({ ...draft, comment: event.target.value }))
+                    }
+                  />
+                </label>
                 <button
                   type='button'
-                  className='btn btn-outline h-11 min-h-11'
-                  disabled={isFeedbackSubmitting}
-                  onClick={() => handleFeedback(5, true)}
+                  className='btn btn-primary h-11 min-h-11 w-full'
+                  disabled={isFeedbackSubmitting || !isStoryBoredFeedbackDraftReady(feedbackDraft)}
+                  onClick={handleFeedback}
                 >
-                  <ThumbsUp className='size-4' />
-                  {_('Matched')}
-                </button>
-                <button
-                  type='button'
-                  className='btn btn-outline h-11 min-h-11'
-                  disabled={isFeedbackSubmitting}
-                  onClick={() => handleFeedback(2, false)}
-                >
-                  <ThumbsDown className='size-4' />
-                  {_('Missed')}
+                  <Send className='size-4' />
+                  {isFeedbackSubmitting ? _('Saving') : _('Save feedback')}
                 </button>
               </div>
             )}

@@ -2,6 +2,7 @@ import type {
   CreateSceneGenerationFeedbackRequest,
   CreateSceneGenerationRequest,
   SceneGenerationFeedbackResponse,
+  SceneGenerationFeedbackCategory,
   SceneGenerationResponse,
   SceneGenerationStatus,
   SceneStylePreset,
@@ -10,6 +11,7 @@ import type {
 export type StoryBoredSceneStatus = SceneGenerationStatus;
 export type StoryBoredStylePreset = SceneStylePreset;
 export type StoryBoredSceneGeneration = SceneGenerationResponse;
+export type StoryBoredFeedbackCategory = SceneGenerationFeedbackCategory;
 export type StoryBoredFeedbackRequest = CreateSceneGenerationFeedbackRequest;
 export type StoryBoredFeedbackResponse = SceneGenerationFeedbackResponse;
 
