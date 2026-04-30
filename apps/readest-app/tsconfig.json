@@ -25,6 +25,8 @@
       "@/components/ui/*": ["./src/components/primitives/*"],
       "@pdfjs/*": ["./public/vendor/pdfjs/*"],
       "@simplecc/*": ["./public/vendor/simplecc/*"],
+      "@storybored/storybored-sdk": ["../../../packages/storybored-sdk/src/index.ts"],
+      "@storybored/types": ["../../../packages/types/src/index.ts"],
       "tauri-plugin-turso": ["./src-tauri/plugins/tauri-plugin-turso/guest-js"]
     }
   },

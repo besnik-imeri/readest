@@ -2,10 +2,12 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
+import path from 'node:path';
 import { loadEnvFile } from './vitest.env.mts';
 
 // Load .env and .env.web so browser tests have the same env as the web app.
 const env = { ...loadEnvFile('.env'), ...loadEnvFile('.env.web') };
+const storyBoredRoot = path.resolve(__dirname, '../../..');
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
@@ -14,6 +16,13 @@ export default defineConfig({
   },
   resolve: {
     conditions: ['development'],
+    alias: {
+      '@storybored/storybored-sdk': path.join(
+        storyBoredRoot,
+        'packages/storybored-sdk/src/index.ts',
+      ),
+      '@storybored/types': path.join(storyBoredRoot, 'packages/types/src/index.ts'),
+    },
   },
   optimizeDeps: {
     include: [

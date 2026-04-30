@@ -1,3 +1,4 @@
+import { StoryBoredClient } from '@storybored/storybored-sdk';
 import type {
   StoryBoredFeedbackRequest,
   StoryBoredFeedbackResponse,
@@ -26,75 +27,57 @@ interface StoryBoredReaderClientOptions {
 
 export class StoryBoredReaderClient {
   readonly #baseUrl: string;
-  readonly #accessToken?: string;
-  readonly #fetch: typeof fetch;
+  readonly #sdk: StoryBoredClient;
 
   constructor(options: StoryBoredReaderClientOptions = {}) {
     this.#baseUrl = getStoryBoredApiBaseUrl();
-    this.#accessToken = options.accessToken;
-    this.#fetch = options.fetchImpl ?? fetch;
+    this.#sdk = new StoryBoredClient({
+      baseUrl: this.#baseUrl,
+      ...options,
+    });
   }
 
   async createSceneGeneration(input: StoryBoredPassage): Promise<StoryBoredSceneGeneration> {
-    return await this.#request('/v1/scene-generations', {
-      method: 'POST',
-      body: JSON.stringify({
-        bookId: input.bookId,
-        selectedText: input.selectedText,
-        surroundingContext: input.surroundingContext,
-        chapter: input.chapter,
-        location: input.location,
-        stylePreset: input.stylePreset,
-      }),
+    this.#assertConfigured();
+
+    return await this.#sdk.createSceneGeneration({
+      bookId: input.bookId,
+      selectedText: input.selectedText,
+      surroundingContext: input.surroundingContext,
+      chapter: input.chapter,
+      location: input.location,
+      stylePreset: input.stylePreset,
+      userPromptOverride: input.userPromptOverride,
     });
   }
 
   async getSceneGeneration(id: string): Promise<StoryBoredSceneGeneration> {
-    return await this.#request(`/v1/scene-generations/${encodeURIComponent(id)}`);
+    this.#assertConfigured();
+    return await this.#sdk.getSceneGeneration(id);
   }
 
   async cancelSceneGeneration(id: string): Promise<StoryBoredSceneGeneration> {
-    return await this.#request(`/v1/scene-generations/${encodeURIComponent(id)}/cancel`, {
-      method: 'POST',
-    });
+    this.#assertConfigured();
+    return await this.#sdk.cancelSceneGeneration(id);
   }
 
   async retrySceneGeneration(id: string): Promise<StoryBoredSceneGeneration> {
-    return await this.#request(`/v1/scene-generations/${encodeURIComponent(id)}/retry`, {
-      method: 'POST',
-    });
+    this.#assertConfigured();
+    return await this.#sdk.retrySceneGeneration(id);
   }
 
   async submitFeedback(
     id: string,
     feedback: StoryBoredFeedbackRequest,
   ): Promise<StoryBoredFeedbackResponse> {
-    return await this.#request(`/v1/scene-generations/${encodeURIComponent(id)}/feedback`, {
-      method: 'POST',
-      body: JSON.stringify(feedback),
-    });
+    this.#assertConfigured();
+    return await this.#sdk.submitSceneGenerationFeedback(id, feedback);
   }
 
-  async #request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  #assertConfigured(): void {
     if (!this.#baseUrl) {
       throw new Error('StoryBored API is not configured.');
     }
-
-    const headers = new Headers(init.headers);
-    if (init.body && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-    if (this.#accessToken) {
-      headers.set('Authorization', `Bearer ${this.#accessToken}`);
-    }
-
-    const response = await this.#fetch(`${this.#baseUrl}${path}`, { ...init, headers });
-
-    if (!response.ok) {
-      throw new Error(`StoryBored request failed with status ${response.status}`);
-    }
-
-    return (await response.json()) as T;
   }
 }
 

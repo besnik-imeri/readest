@@ -1,8 +1,17 @@
 import withSerwistInit from '@serwist/next';
 import withBundleAnalyzer from '@next/bundle-analyzer';
+import path from 'node:path';
 
 const isDev = process.env['NODE_ENV'] === 'development';
 const appPlatform = process.env['NEXT_PUBLIC_APP_PLATFORM'];
+const storyBoredRoot = path.resolve(process.cwd(), '../../..');
+const storyBoredAliases = {
+  '@storybored/storybored-sdk': path.join(
+    storyBoredRoot,
+    'packages/storybored-sdk/src/index.ts',
+  ),
+  '@storybored/types': path.join(storyBoredRoot, 'packages/types/src/index.ts'),
+};
 
 if (isDev) {
   const { initOpenNextCloudflareForDev } = await import('@opennextjs/cloudflare');
@@ -31,6 +40,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       nunjucks: 'nunjucks/browser/nunjucks.js',
+      ...storyBoredAliases,
       ...(appPlatform !== 'web' ? { '@tursodatabase/database-wasm': false } : {}),
     };
     return config;
@@ -38,6 +48,7 @@ const nextConfig = {
   turbopack: {
     resolveAlias: {
       nunjucks: 'nunjucks/browser/nunjucks.js',
+      ...storyBoredAliases,
       ...(appPlatform !== 'web' ? { '@tursodatabase/database-wasm': './src/utils/stub.ts' } : {}),
     },
   },
