@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RiDeleteBinLine } from 'react-icons/ri';
+import { MdImageSearch } from 'react-icons/md';
 
 import * as CFI from 'foliate-js/epubcfi.js';
 import { Overlayer } from 'foliate-js/overlayer.js';
@@ -49,8 +50,12 @@ import ProofreadPopup from './ProofreadPopup';
 import ExportMarkdownDialog from './ExportMarkdownDialog';
 import StoryBoredScenePanel from '@/integrations/storybored/StoryBoredScenePanel';
 import { isStoryBoredReaderEnabled } from '@/integrations/storybored/client';
-import { createStoryBoredPassage } from '@/integrations/storybored/passage';
-import type { StoryBoredPassage } from '@/integrations/storybored/types';
+import { createStoryBoredPassage, getStoryBoredBookId } from '@/integrations/storybored/passage';
+import {
+  isStoryBoredSceneActive,
+  readStoryBoredSceneSession,
+} from '@/integrations/storybored/session';
+import type { StoryBoredPassage, StoryBoredSceneGeneration } from '@/integrations/storybored/types';
 
 const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const _ = useTranslation();
@@ -99,6 +104,8 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   } | null>(null);
   const [showStoryBoredPanel, setShowStoryBoredPanel] = useState(false);
   const [storyBoredPassage, setStoryBoredPassage] = useState<StoryBoredPassage | null>(null);
+  const [storyBoredGenerationId, setStoryBoredGenerationId] = useState<string | null>(null);
+  const [storyBoredGenerationActive, setStoryBoredGenerationActive] = useState(false);
 
   const [selectedStyle, setSelectedStyle] = useState<HighlightStyle>(
     settings.globalReadSettings.highlightStyle,
@@ -481,6 +488,20 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   }, []);
 
   useEffect(() => {
+    if (!isStoryBoredReaderEnabled() || showStoryBoredPanel || storyBoredPassage) return;
+
+    const bookId = getStoryBoredBookId(bookKey, bookData.book === null ? undefined : bookData.book);
+    const session = readStoryBoredSceneSession(bookId);
+    if (!session) return;
+
+    setStoryBoredPassage(session.passage);
+    setStoryBoredGenerationId(session.generationId);
+    setStoryBoredGenerationActive(true);
+    setShowStoryBoredPanel(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookKey, bookData.book?.hash, bookData.book?.metaHash]);
+
+  useEffect(() => {
     const updateBooknotesPage = async () => {
       const config = getConfig(bookKey);
       const view = getView(bookKey);
@@ -834,9 +855,21 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
         ...(bookData.bookDoc ? { bookDoc: bookData.bookDoc } : {}),
       }),
     );
+    setStoryBoredGenerationId(null);
+    setStoryBoredGenerationActive(false);
     setShowStoryBoredPanel(true);
     handleDismissPopupAndSelection();
   };
+
+  const handleStoryBoredGenerationChange = useCallback(
+    (generation: StoryBoredSceneGeneration | null) => {
+      setStoryBoredGenerationId(generation?.id ?? null);
+      setStoryBoredGenerationActive(
+        generation ? isStoryBoredSceneActive(generation.status) : false,
+      );
+    },
+    [],
+  );
 
   const handleStartEditAnnotation = useCallback(() => {
     setShowAnnotPopup(false);
@@ -1095,8 +1128,21 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       <StoryBoredScenePanel
         isOpen={showStoryBoredPanel}
         passage={storyBoredPassage}
+        generationId={storyBoredGenerationId}
+        onGenerationChange={handleStoryBoredGenerationChange}
         onClose={() => setShowStoryBoredPanel(false)}
       />
+      {!showStoryBoredPanel && storyBoredGenerationActive && storyBoredPassage && (
+        <button
+          type='button'
+          className='btn btn-primary fixed bottom-4 right-4 z-30 h-12 min-h-12 w-12 rounded-full p-0 shadow-xl'
+          aria-label={_('Open StoryBored scene')}
+          title={_('Open StoryBored scene')}
+          onClick={() => setShowStoryBoredPanel(true)}
+        >
+          <MdImageSearch className='size-5' />
+        </button>
+      )}
     </div>
   );
 };

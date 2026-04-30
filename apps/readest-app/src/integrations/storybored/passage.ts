@@ -15,7 +15,7 @@ interface CreateStoryBoredPassageInput {
   selection: TextSelection;
 }
 
-function getBookId(bookKey: string, book?: Book): string {
+export function getStoryBoredBookId(bookKey: string, book?: Book): string {
   return book?.metaHash || book?.hash || bookKey.split('-')[0] || bookKey;
 }
 
@@ -58,7 +58,7 @@ export function createStoryBoredPassage({
   selection,
 }: CreateStoryBoredPassageInput): StoryBoredPassage {
   const passage: StoryBoredPassage = {
-    bookId: getBookId(bookKey, book),
+    bookId: getStoryBoredBookId(bookKey, book),
     selectedText: selection.text.trim(),
     stylePreset: 'cinematic-literary',
   };

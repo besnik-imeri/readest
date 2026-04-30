@@ -7,6 +7,11 @@ import { Ban, ImagePlus, RefreshCcw, Star, ThumbsDown, ThumbsUp, X } from 'lucid
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { createStoryBoredReaderClient, isStoryBoredReaderEnabled } from './client';
+import {
+  clearStoryBoredSceneSession,
+  isStoryBoredSceneActive,
+  writeStoryBoredSceneSession,
+} from './session';
 import type {
   StoryBoredPassage,
   StoryBoredSceneGeneration,
@@ -29,6 +34,8 @@ const STYLE_OPTIONS: Array<{ value: StoryBoredStylePreset; label: string }> = [
 interface StoryBoredScenePanelProps {
   isOpen: boolean;
   passage: StoryBoredPassage | null;
+  generationId?: string | null;
+  onGenerationChange?: (generation: StoryBoredSceneGeneration | null) => void;
   onClose: () => void;
 }
 
@@ -58,6 +65,8 @@ function getErrorMessage(error: unknown): string {
 const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
   isOpen,
   passage,
+  generationId,
+  onGenerationChange,
   onClose,
 }) => {
   const _ = useTranslation();
@@ -85,18 +94,62 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
   const imageUrl = generation?.image?.url;
 
   useEffect(() => {
+    if (generationId) return;
     setGeneration(null);
+    onGenerationChange?.(null);
     setError(null);
     setFeedbackSubmitted(false);
     setStylePreset(passage?.stylePreset ?? 'cinematic-literary');
-  }, [passageKey, passage?.stylePreset]);
+  }, [generationId, onGenerationChange, passageKey, passage?.stylePreset]);
+
+  useEffect(() => {
+    if (!isOpen || !generationId) return;
+
+    let cancelled = false;
+
+    const loadGeneration = async () => {
+      try {
+        const restoredGeneration = await client.getSceneGeneration(generationId);
+        if (cancelled) return;
+        setGeneration(restoredGeneration);
+        onGenerationChange?.(restoredGeneration);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) setError(getErrorMessage(err));
+      }
+    };
+
+    loadGeneration();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client, generationId, isOpen, onGenerationChange]);
+
+  useEffect(() => {
+    if (!passage || !generation) return;
+
+    if (isStoryBoredSceneActive(generation.status)) {
+      writeStoryBoredSceneSession({
+        bookId: passage.bookId,
+        generationId: generation.id,
+        generationStatus: generation.status,
+        passage,
+        updatedAt: Date.now(),
+      });
+    } else {
+      clearStoryBoredSceneSession(generation.id);
+    }
+  }, [generation, passage, passageKey]);
 
   useEffect(() => {
     if (!generation || !ACTIVE_STATUSES.has(generation.status)) return;
 
     const interval = window.setInterval(async () => {
       try {
-        setGeneration(await client.getSceneGeneration(generation.id));
+        const nextGeneration = await client.getSceneGeneration(generation.id);
+        setGeneration(nextGeneration);
+        onGenerationChange?.(nextGeneration);
         setError(null);
       } catch (err) {
         setError(getErrorMessage(err));
@@ -104,7 +157,7 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     }, 2000);
 
     return () => window.clearInterval(interval);
-  }, [client, generation]);
+  }, [client, generation, onGenerationChange]);
 
   if (!isOpen) return null;
 
@@ -114,7 +167,9 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     setError(null);
 
     try {
-      setGeneration(await client.createSceneGeneration({ ...passage, stylePreset }));
+      const nextGeneration = await client.createSceneGeneration({ ...passage, stylePreset });
+      setGeneration(nextGeneration);
+      onGenerationChange?.(nextGeneration);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -128,7 +183,9 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     setError(null);
 
     try {
-      setGeneration(await client.cancelSceneGeneration(generation.id));
+      const nextGeneration = await client.cancelSceneGeneration(generation.id);
+      setGeneration(nextGeneration);
+      onGenerationChange?.(nextGeneration);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -143,7 +200,9 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
     setFeedbackSubmitted(false);
 
     try {
-      setGeneration(await client.retrySceneGeneration(generation.id));
+      const nextGeneration = await client.retrySceneGeneration(generation.id);
+      setGeneration(nextGeneration);
+      onGenerationChange?.(nextGeneration);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
