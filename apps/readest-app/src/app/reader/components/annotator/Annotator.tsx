@@ -78,6 +78,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const view = getView(bookKey);
   const viewSettings = getViewSettings(bookKey)!;
   const primaryLang = bookData.book?.primaryLanguage || 'en';
+  const storyBoredReaderEnabled = isStoryBoredReaderEnabled();
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -136,7 +137,18 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const transPopupHeight = Math.min(265, maxHeight);
   const proofreadPopupWidth = Math.min(440, maxWidth);
   const proofreadPopupHeight = Math.min(200, maxHeight);
-  const annotPopupWidth = Math.min(useResponsiveSize(300), maxWidth);
+  const annotPopupBaseWidth = useResponsiveSize(300);
+  const annotPopupButtonSlotWidth = useResponsiveSize(40);
+  const visibleAnnotationToolCount = annotationToolButtons.filter(
+    ({ type }) => type !== 'storybored' || storyBoredReaderEnabled,
+  ).length;
+  const annotPopupWidth = Math.min(
+    Math.max(
+      annotPopupBaseWidth,
+      visibleAnnotationToolCount * annotPopupButtonSlotWidth + popupPadding * 2,
+    ),
+    maxWidth,
+  );
   const annotPopupHeight = useResponsiveSize(44);
   const androidSelectionHandlerHeight = 0;
 
@@ -488,7 +500,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   }, []);
 
   useEffect(() => {
-    if (!isStoryBoredReaderEnabled() || showStoryBoredPanel || storyBoredPassage) return;
+    if (!storyBoredReaderEnabled || showStoryBoredPanel || storyBoredPassage) return;
 
     const bookId = getStoryBoredBookId(bookKey, bookData.book === null ? undefined : bookData.book);
     const session = readStoryBoredSceneSession(bookId);
@@ -1030,7 +1042,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           tooltipText: _(label),
           Icon,
           onClick: handleStoryBored,
-          visible: isStoryBoredReaderEnabled(),
+          visible: storyBoredReaderEnabled,
         };
       default:
         return { tooltipText: '', Icon, onClick: () => {} };

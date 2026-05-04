@@ -1,4 +1,4 @@
-import { StoryBoredClient } from '@storybored/storybored-sdk';
+import { StoryBoredClient } from '../../../../../../packages/storybored-sdk/dist/client.js';
 import type {
   StoryBoredFeedbackRequest,
   StoryBoredFeedbackResponse,

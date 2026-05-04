@@ -3,8 +3,6 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-const storyBoredRoot = path.resolve(__dirname, '../../..');
-
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   resolve: {
@@ -13,11 +11,6 @@ export default defineConfig({
       // source files.  foliate-js/pdf.js lives outside that scope, so Vite
       // needs an explicit alias to find the vendored pdfjs build.
       '@pdfjs': path.resolve(__dirname, 'public/vendor/pdfjs'),
-      '@storybored/storybored-sdk': path.join(
-        storyBoredRoot,
-        'packages/storybored-sdk/src/index.ts',
-      ),
-      '@storybored/types': path.join(storyBoredRoot, 'packages/types/src/index.ts'),
     },
   },
   test: {

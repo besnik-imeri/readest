@@ -6,7 +6,7 @@ import type {
   SceneGenerationResponse,
   SceneGenerationStatus,
   SceneStylePreset,
-} from '@storybored/types';
+} from '../../../../../../packages/types/dist/scene-generation.js';
 
 export type StoryBoredSceneStatus = SceneGenerationStatus;
 export type StoryBoredStylePreset = SceneStylePreset;
