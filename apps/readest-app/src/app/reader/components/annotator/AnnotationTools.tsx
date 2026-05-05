@@ -8,8 +8,8 @@ import { BsTranslate } from 'react-icons/bs';
 import { TbHexagonLetterD } from 'react-icons/tb';
 import { FaHeadphones } from 'react-icons/fa6';
 import { IoIosBuild } from 'react-icons/io';
-import { MdImageSearch } from 'react-icons/md';
 import { AnnotationToolType } from '@/types/annotator';
+import { StoryBoredLogoMarkIcon } from '@/integrations/storybored/StoryBoredLogo';
 import { stubTranslation as _ } from '@/utils/misc';
 
 type AnnotationToolButton = {
@@ -102,7 +102,7 @@ export const annotationToolButtons = createAnnotationToolButtons([
     type: 'storybored',
     label: _('StoryBored'),
     tooltip: _('Generate a scene from selected text'),
-    Icon: MdImageSearch,
+    Icon: StoryBoredLogoMarkIcon,
   },
 ]);
 

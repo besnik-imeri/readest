@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { SILENCE_DATA } from '@/services/tts';
 import { getMediaSession, TauriMediaSession } from '@/libs/mediaSession';
 import { fetchImageAsBase64 } from '@/utils/image';
+import { STORYBORED_LOGO_ASSETS } from '@/integrations/storybored/StoryBoredLogo';
 
 interface UseTTSMediaSessionProps {
   bookKey: string;
@@ -67,11 +68,11 @@ export const useTTSMediaSession = ({ bookKey }: UseTTSMediaSessionProps) => {
       const { sectionLabel } = progress || {};
       const ttsMediaMetadataMode = viewSettings?.ttsMediaMetadata ?? 'sentence';
 
-      let artworkImage = '/icon.png';
+      let artworkImage: string = STORYBORED_LOGO_ASSETS.appIcon;
       try {
-        artworkImage = await fetchImageAsBase64(coverImageUrl || '/icon.png');
+        artworkImage = await fetchImageAsBase64(coverImageUrl || STORYBORED_LOGO_ASSETS.appIcon);
       } catch {
-        artworkImage = await fetchImageAsBase64('/icon.png');
+        artworkImage = await fetchImageAsBase64(STORYBORED_LOGO_ASSETS.appIcon);
       }
 
       await mediaSession.setActive({

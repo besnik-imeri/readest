@@ -7,6 +7,7 @@ import { Ban, ImagePlus, RefreshCcw, Send, Star, ThumbsDown, ThumbsUp, X } from 
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { createStoryBoredReaderClient, isStoryBoredReaderEnabled } from './client';
+import { StoryBoredLogoMarkIcon } from './StoryBoredLogo';
 import {
   buildStoryBoredFeedbackPayload,
   isStoryBoredFeedbackDraftReady,
@@ -280,11 +281,14 @@ const StoryBoredScenePanel: React.FC<StoryBoredScenePanelProps> = ({
       )}
     >
       <header className='border-base-300 flex min-h-14 items-center justify-between gap-3 border-b px-4'>
-        <div className='min-w-0'>
-          <h2 className='truncate text-base font-semibold'>{_('StoryBored')}</h2>
-          <p className='text-base-content/60 truncate text-xs'>
-            {_(getStatusLabel(generation?.status))}
-          </p>
+        <div className='flex min-w-0 items-center gap-2.5'>
+          <StoryBoredLogoMarkIcon className='size-8 shrink-0' />
+          <div className='min-w-0'>
+            <h2 className='truncate text-base font-semibold'>{_('StoryBored')}</h2>
+            <p className='text-base-content/60 truncate text-xs'>
+              {_(getStatusLabel(generation?.status))}
+            </p>
+          </div>
         </div>
         <button
           type='button'

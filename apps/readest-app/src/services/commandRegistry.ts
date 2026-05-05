@@ -631,8 +631,8 @@ const actionItems = [
   },
   {
     id: 'action.about',
-    labelKey: _('About Readest'),
-    keywords: ['about', 'readest', 'version', 'info'],
+    labelKey: _('About StoryBored'),
+    keywords: ['about', 'storybored', 'version', 'info'],
   },
   {
     id: 'action.telemetry',

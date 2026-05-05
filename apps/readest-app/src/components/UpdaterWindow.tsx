@@ -22,6 +22,7 @@ import { getLocale } from '@/utils/misc';
 import { setLastShownReleaseNotesVersion } from '@/helpers/updater';
 import { READEST_UPDATER_FILE, READEST_CHANGELOG_FILE } from '@/services/constants';
 import Dialog from '@/components/Dialog';
+import { STORYBORED_LOGO_ASSETS } from '@/integrations/storybored/StoryBoredLogo';
 import Link from './Link';
 
 interface ReleaseNotes {
@@ -428,19 +429,28 @@ export const UpdaterContent = ({
       <div className='flex w-full max-w-2xl flex-col gap-4'>
         <div className='flex flex-col justify-center gap-4 sm:flex-row sm:items-start'>
           <div className='flex items-center justify-center'>
-            <Image src='/icon.png' alt='Logo' className='h-20 w-20' width={64} height={64} />
+            <Image
+              src={STORYBORED_LOGO_ASSETS.appIcon}
+              alt='StoryBored logo'
+              className='h-20 w-20'
+              width={64}
+              height={64}
+            />
           </div>
 
           {checkUpdate ? (
             <div className='text-base-content flex-grow text-sm'>
               <h2 className='mb-4 text-center font-bold sm:text-start'>
-                {_('A new version of Readest is available!')}
+                {_('A new version of StoryBored is available!')}
               </h2>
               <p className='mb-2'>
-                {_('Readest {{newVersion}} is available (installed version {{currentVersion}}).', {
-                  newVersion,
-                  currentVersion,
-                })}
+                {_(
+                  'StoryBored {{newVersion}} is available (installed version {{currentVersion}}).',
+                  {
+                    newVersion,
+                    currentVersion,
+                  },
+                )}
               </p>
               <p className='mb-2'>{_('Download and install now?')}</p>
 
@@ -601,7 +611,7 @@ export const UpdaterWindow = () => {
     <Dialog
       id='updater_window'
       isOpen={isOpen}
-      title={checkUpdate ? _('Software Update') : _("What's New in Readest")}
+      title={checkUpdate ? _('Software Update') : _("What's New in StoryBored")}
       onClose={() => setIsOpen(false)}
       boxClassName='sm:!w-[75%] sm:h-auto sm:!max-h-[85vh] sm:!max-w-2xl'
     >

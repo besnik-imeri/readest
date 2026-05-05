@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RiDeleteBinLine } from 'react-icons/ri';
-import { MdImageSearch } from 'react-icons/md';
 
 import * as CFI from 'foliate-js/epubcfi.js';
 import { Overlayer } from 'foliate-js/overlayer.js';
@@ -48,6 +47,7 @@ import TranslatorPopup from './TranslatorPopup';
 import useShortcuts from '@/hooks/useShortcuts';
 import ProofreadPopup from './ProofreadPopup';
 import ExportMarkdownDialog from './ExportMarkdownDialog';
+import { StoryBoredLogoMarkIcon } from '@/integrations/storybored/StoryBoredLogo';
 import StoryBoredScenePanel from '@/integrations/storybored/StoryBoredScenePanel';
 import { isStoryBoredReaderEnabled } from '@/integrations/storybored/client';
 import { createStoryBoredPassage, getStoryBoredBookId } from '@/integrations/storybored/passage';
@@ -1152,7 +1152,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           title={_('Open StoryBored scene')}
           onClick={() => setShowStoryBoredPanel(true)}
         >
-          <MdImageSearch className='size-5' />
+          <StoryBoredLogoMarkIcon className='size-5' />
         </button>
       )}
     </div>

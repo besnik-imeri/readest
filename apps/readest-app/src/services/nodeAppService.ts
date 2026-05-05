@@ -97,11 +97,13 @@ function getTempDir(): string {
 // Otherwise they use standard system directories.
 const getPathResolver = ({ customRootDir }: { customRootDir?: string } = {}) => {
   const isCustomBaseDir = Boolean(customRootDir);
+  const joinCustomPath = (...parts: string[]) => nodePath.join(customRootDir!, ...parts);
+  const joinSubdirPath = (subdir: string, fp: string) => (fp ? nodePath.join(subdir, fp) : subdir);
   const getCustomBasePrefix = isCustomBaseDir
     ? (base: BaseDir) => {
         const dataDirs: BaseDir[] = ['Settings', 'Data', 'Books', 'Fonts', 'Images'];
         const leafDir = dataDirs.includes(base) ? '' : base;
-        return leafDir ? `${customRootDir}/${leafDir}` : customRootDir!;
+        return leafDir ? joinCustomPath(leafDir) : customRootDir!;
       }
     : undefined;
 
@@ -112,7 +114,7 @@ const getPathResolver = ({ customRootDir }: { customRootDir?: string } = {}) => 
         return {
           baseDir: 0,
           basePrefix: async () => custom ?? getAppConfigDir(),
-          fp: custom ? `${custom}${fp ? `/${fp}` : ''}` : fp,
+          fp: custom ? (fp ? nodePath.join(custom, fp) : custom) : fp,
           base,
         };
       case 'Cache':
@@ -126,16 +128,14 @@ const getPathResolver = ({ customRootDir }: { customRootDir?: string } = {}) => 
         return {
           baseDir: 0,
           basePrefix: async () => custom ?? getAppLogDir(),
-          fp: custom ? `${custom}${fp ? `/${fp}` : ''}` : fp,
+          fp: custom ? (fp ? nodePath.join(custom, fp) : custom) : fp,
           base,
         };
       case 'Data':
         return {
           baseDir: 0,
           basePrefix: async () => custom ?? getAppDataDir(),
-          fp: custom
-            ? `${custom}/${DATA_SUBDIR}${fp ? `/${fp}` : ''}`
-            : `${DATA_SUBDIR}${fp ? `/${fp}` : ''}`,
+          fp: custom ? nodePath.join(custom, DATA_SUBDIR, fp) : joinSubdirPath(DATA_SUBDIR, fp),
           base,
         };
       case 'Books':
@@ -143,8 +143,8 @@ const getPathResolver = ({ customRootDir }: { customRootDir?: string } = {}) => 
           baseDir: 0,
           basePrefix: async () => custom ?? getAppDataDir(),
           fp: custom
-            ? `${custom}/${LOCAL_BOOKS_SUBDIR}${fp ? `/${fp}` : ''}`
-            : `${LOCAL_BOOKS_SUBDIR}${fp ? `/${fp}` : ''}`,
+            ? nodePath.join(custom, LOCAL_BOOKS_SUBDIR, fp)
+            : joinSubdirPath(LOCAL_BOOKS_SUBDIR, fp),
           base,
         };
       case 'Fonts':
@@ -152,8 +152,8 @@ const getPathResolver = ({ customRootDir }: { customRootDir?: string } = {}) => 
           baseDir: 0,
           basePrefix: async () => custom ?? getAppDataDir(),
           fp: custom
-            ? `${custom}/${LOCAL_FONTS_SUBDIR}${fp ? `/${fp}` : ''}`
-            : `${LOCAL_FONTS_SUBDIR}${fp ? `/${fp}` : ''}`,
+            ? nodePath.join(custom, LOCAL_FONTS_SUBDIR, fp)
+            : joinSubdirPath(LOCAL_FONTS_SUBDIR, fp),
           base,
         };
       case 'Images':
@@ -161,8 +161,8 @@ const getPathResolver = ({ customRootDir }: { customRootDir?: string } = {}) => 
           baseDir: 0,
           basePrefix: async () => custom ?? getAppDataDir(),
           fp: custom
-            ? `${custom}/${LOCAL_IMAGES_SUBDIR}${fp ? `/${fp}` : ''}`
-            : `${LOCAL_IMAGES_SUBDIR}${fp ? `/${fp}` : ''}`,
+            ? nodePath.join(custom, LOCAL_IMAGES_SUBDIR, fp)
+            : joinSubdirPath(LOCAL_IMAGES_SUBDIR, fp),
           base,
         };
       case 'None':
@@ -359,6 +359,11 @@ export class NodeAppService extends BaseAppService {
 
   async selectFiles(): Promise<string[]> {
     throw new Error('selectFiles is not supported in Node.js environment');
+  }
+
+  override async resolveFilePath(path: string, base: BaseDir): Promise<string> {
+    const prefix = await this.fs.getPrefix(base);
+    return path ? nodePath.join(prefix, path) : prefix;
   }
 
   async saveFile(

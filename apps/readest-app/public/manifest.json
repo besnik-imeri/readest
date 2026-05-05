@@ -1,25 +1,16 @@
 {
-  "name": "Readest",
-  "short_name": "Readest",
+  "name": "StoryBored",
+  "short_name": "StoryBored",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "description": "Readest is an open-source eBook reader supporting EPUB, PDF, and sync across devices.",
+  "background_color": "#fffaf0",
+  "description": "StoryBored turns selected passages into cozy, imaginative scene visuals without pulling readers away from the book.",
   "icons": [
     {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "256x256"
-    },
-    {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "/images/storybored/logo/appicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
     }
   ],
   "splash_pages": null

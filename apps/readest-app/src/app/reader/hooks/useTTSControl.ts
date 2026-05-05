@@ -18,6 +18,7 @@ import { getLocale } from '@/utils/misc';
 import { buildTTSMediaMetadata } from '@/utils/ttsMetadata';
 import { invokeUseBackgroundAudio } from '@/utils/bridge';
 import { estimateTTSTime } from '@/utils/ttsTime';
+import { STORYBORED_LOGO_ASSETS } from '@/integrations/storybored/StoryBoredLogo';
 import { useTTSMediaSession } from './useTTSMediaSession';
 
 interface UseTTSControlProps {
@@ -170,7 +171,15 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
             title: metadata.title,
             artist: metadata.artist,
             album: metadata.album,
-            artwork: [{ src: coverImageUrl || '/icon.png', sizes: '512x512', type: 'image/png' }],
+            artwork: [
+              coverImageUrl
+                ? { src: coverImageUrl, sizes: '512x512', type: 'image/png' }
+                : {
+                    src: STORYBORED_LOGO_ASSETS.appIcon,
+                    sizes: 'any',
+                    type: 'image/svg+xml',
+                  },
+            ],
           });
         }
       }
