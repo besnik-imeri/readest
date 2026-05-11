@@ -2,12 +2,10 @@ import { IconType } from 'react-icons';
 import { FiSearch } from 'react-icons/fi';
 import { FiCopy } from 'react-icons/fi';
 import { PiHighlighterFill } from 'react-icons/pi';
-import { FaWikipediaW } from 'react-icons/fa';
 import { BsPencilSquare } from 'react-icons/bs';
 import { BsTranslate } from 'react-icons/bs';
 import { TbHexagonLetterD } from 'react-icons/tb';
 import { FaHeadphones } from 'react-icons/fa6';
-import { IoIosBuild } from 'react-icons/io';
 import { AnnotationToolType } from '@/types/annotator';
 import { StoryBoredLogoMarkIcon } from '@/integrations/storybored/StoryBoredLogo';
 import { stubTranslation as _ } from '@/utils/misc';
@@ -21,17 +19,15 @@ type AnnotationToolButton = {
 };
 
 function createAnnotationToolButtons<T extends AnnotationToolType>(
-  buttons: AnnotationToolType extends T
-    ? {
-        [K in T]: {
-          type: K;
-          label: string;
-          tooltip: string;
-          Icon: IconType;
-          quickAction?: boolean;
-        };
-      }[T][]
-    : never,
+  buttons: {
+    [K in T]: {
+      type: K;
+      label: string;
+      tooltip: string;
+      Icon: IconType;
+      quickAction?: boolean;
+    };
+  }[T][],
 ): AnnotationToolButton[] {
   return buttons;
 }
@@ -72,13 +68,6 @@ export const annotationToolButtons = createAnnotationToolButtons([
     quickAction: true,
   },
   {
-    type: 'wikipedia',
-    label: _('Wikipedia'),
-    tooltip: _('Look up text in Wikipedia after selection'),
-    Icon: FaWikipediaW,
-    quickAction: true,
-  },
-  {
     type: 'translate',
     label: _('Translate'),
     tooltip: _('Translate text after selection'),
@@ -93,12 +82,6 @@ export const annotationToolButtons = createAnnotationToolButtons([
     quickAction: true,
   },
   {
-    type: 'proofread',
-    label: _('Proofread'),
-    tooltip: _('Proofread text after selection'),
-    Icon: IoIosBuild,
-  },
-  {
     type: 'storybored',
     label: _('StoryBored'),
     tooltip: _('Generate a scene from selected text'),
@@ -109,3 +92,8 @@ export const annotationToolButtons = createAnnotationToolButtons([
 export const annotationToolQuickActions = annotationToolButtons.filter(
   (button) => button.quickAction,
 );
+
+export const isAnnotationToolQuickAction = (
+  action: AnnotationToolType | null | undefined,
+): action is AnnotationToolType =>
+  !!action && annotationToolQuickActions.some((button) => button.type === action);

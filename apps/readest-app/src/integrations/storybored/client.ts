@@ -2,6 +2,9 @@ import { StoryBoredClient } from '../../../../../../packages/storybored-sdk/dist
 import type {
   StoryBoredFeedbackRequest,
   StoryBoredFeedbackResponse,
+  StoryBoredOwnedLibrary,
+  StoryBoredOwnedLibraryContent,
+  StoryBoredOwnedLibraryScenePack,
   StoryBoredPassage,
   StoryBoredSceneGeneration,
 } from './types';
@@ -72,6 +75,21 @@ export class StoryBoredReaderClient {
   ): Promise<StoryBoredFeedbackResponse> {
     this.#assertConfigured();
     return await this.#sdk.submitSceneGenerationFeedback(id, feedback);
+  }
+
+  async listOwnedLibrary(): Promise<StoryBoredOwnedLibrary> {
+    this.#assertConfigured();
+    return await this.#sdk.listOwnedLibrary();
+  }
+
+  async getOwnedLibraryContent(libraryItemId: string): Promise<StoryBoredOwnedLibraryContent> {
+    this.#assertConfigured();
+    return await this.#sdk.getOwnedLibraryContent(libraryItemId);
+  }
+
+  async getOwnedLibraryScenePack(libraryItemId: string): Promise<StoryBoredOwnedLibraryScenePack> {
+    this.#assertConfigured();
+    return await this.#sdk.getOwnedLibraryScenePack(libraryItemId);
   }
 
   #assertConfigured(): void {

@@ -25,7 +25,6 @@ import {
   ensureMainLibraryWindow,
   navigateToLibrary,
 } from '@/utils/nav';
-import { clearDiscordPresence } from '@/utils/discord';
 import { BOOK_IDS_SEPARATOR } from '@/services/constants';
 import { BookDetailModal } from '@/components/metadata';
 
@@ -138,19 +137,12 @@ const ReaderContent: React.FC<{ ids?: string; settings: SystemSettings }> = ({ i
     const { isPrimary } = getViewState(bookKey) || {};
     if (isPrimary && book && config) {
       const settings = useSettingsStore.getState().settings;
-      eventDispatcher.dispatch('sync-book-progress', { bookKey });
-      eventDispatcher.dispatch('flush-kosync', { bookKey });
       await saveConfig(envConfig, bookKey, config, settings);
     }
   };
 
   const saveConfigAndCloseBook = async (bookKey: string) => {
     console.log('Closing book', bookKey);
-
-    const viewState = getViewState(bookKey);
-    if (viewState?.isPrimary && appService?.isDesktopApp) {
-      await clearDiscordPresence(appService);
-    }
 
     try {
       getView(bookKey)?.close();

@@ -12,11 +12,7 @@ vi.mock('react-icons/vsc', () => ({
 vi.mock('react-icons/lia', () => ({
   LiaHandPointerSolid: () => null,
 }));
-vi.mock('react-icons/io5', () => ({
-  IoAccessibilityOutline: () => null,
-}));
 vi.mock('react-icons/pi', () => ({
-  PiRobot: () => null,
   PiSpeakerHigh: () => null,
   PiSun: () => null,
   PiMoon: () => null,
@@ -57,11 +53,9 @@ function createMockOptions(
     toggleFullscreen: vi.fn(),
     toggleAlwaysOnTop: vi.fn(),
     toggleScreenWakeLock: vi.fn(),
-    toggleAutoUpload: vi.fn(),
     reloadPage: vi.fn(),
     toggleOpenLastBooks: vi.fn(),
     showAbout: vi.fn(),
-    toggleTelemetry: vi.fn(),
     isDesktop: false,
     ...overrides,
   };
@@ -79,13 +73,14 @@ describe('buildCommandRegistry', () => {
     expect(settingsItems.length).toBeGreaterThan(0);
 
     // Check that multiple panels are represented
-    const panels = new Set(settingsItems.map((i) => i.panel));
+    const panels = new Set(settingsItems.map((i) => i.panel as string | undefined));
     expect(panels.has('Font')).toBe(true);
     expect(panels.has('Layout')).toBe(true);
     expect(panels.has('Color')).toBe(true);
     expect(panels.has('Control')).toBe(true);
     expect(panels.has('Language')).toBe(true);
-    expect(panels.has('Custom')).toBe(true);
+    expect(panels.has('Custom')).toBe(false);
+    expect(panels.has('AI')).toBe(false);
   });
 
   it('should include action items', () => {
@@ -98,7 +93,8 @@ describe('buildCommandRegistry', () => {
     expect(actionIds).toContain('action.fullscreen');
     expect(actionIds).toContain('action.reload');
     expect(actionIds).toContain('action.about');
-    expect(actionIds).toContain('action.telemetry');
+    expect(actionIds).not.toContain('action.autoUpload');
+    expect(actionIds).not.toContain('action.telemetry');
   });
 
   it('should use the provided translation function for localized labels', () => {
@@ -174,11 +170,12 @@ describe('buildCommandRegistry', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('should include AI panel items in non-production', () => {
+  it('should not include hidden AI or custom panel items', () => {
     const items = buildCommandRegistry(createMockOptions());
-    const aiItems = items.filter((i) => i.panel === 'AI');
-    // In test environment (not production), AI items should be included
-    expect(aiItems.length).toBeGreaterThan(0);
+    const aiItems = items.filter((i) => (i.panel as string | undefined) === 'AI');
+    const customItems = items.filter((i) => (i.panel as string | undefined) === 'Custom');
+    expect(aiItems).toHaveLength(0);
+    expect(customItems).toHaveLength(0);
   });
 
   it('should give each settings item keywords and section', () => {

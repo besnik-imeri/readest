@@ -13,10 +13,12 @@ interface AnnotationPopupProps {
   isVertical: boolean;
   buttons: Array<{
     tooltipText: string;
+    labelText?: string;
     Icon: React.ElementType;
     onClick: () => void;
     disabled?: boolean;
     visible?: boolean;
+    isPrimary?: boolean;
   }>;
   notes: BookNote[];
   position: Position;
@@ -46,6 +48,10 @@ const AnnotationPopup: React.FC<AnnotationPopupProps> = ({
   onHighlight,
   onDismiss,
 }) => {
+  const visibleButtons = buttons.filter((button) => button.visible !== false);
+  const primaryButtons = visibleButtons.filter((button) => button.isPrimary);
+  const secondaryButtons = visibleButtons.filter((button) => !button.isPrimary);
+
   return (
     <div dir={dir}>
       <Popup
@@ -62,28 +68,6 @@ const AnnotationPopup: React.FC<AnnotationPopupProps> = ({
         onDismiss={onDismiss}
       >
         <div className={clsx('flex h-full gap-4', isVertical ? 'flex-row' : 'flex-col')}>
-          <div
-            className={clsx(
-              'selection-buttons flex h-full w-full items-center justify-between p-2',
-              isVertical ? 'flex-col overflow-y-auto' : 'flex-row overflow-x-auto',
-              notes.length > 0 && 'hidden',
-            )}
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {buttons.map((button, index) => {
-              if (button.visible === false) return null;
-              return (
-                <AnnotationToolButton
-                  key={index}
-                  showTooltip={!highlightOptionsVisible}
-                  tooltipText={button.tooltipText}
-                  Icon={button.Icon}
-                  onClick={button.onClick}
-                  disabled={button.disabled}
-                />
-              );
-            })}
-          </div>
           {notes.length > 0 ? (
             <AnnotationNotes
               bookKey={bookKey}
@@ -96,17 +80,66 @@ const AnnotationPopup: React.FC<AnnotationPopupProps> = ({
               onDismiss={onDismiss}
             />
           ) : (
-            highlightOptionsVisible && (
-              <HighlightOptions
-                isVertical={isVertical}
-                triangleDir={trianglePosition.dir!}
-                popupWidth={isVertical ? popupHeight : popupWidth}
-                popupHeight={isVertical ? popupWidth : popupHeight}
-                selectedStyle={selectedStyle}
-                selectedColor={selectedColor}
-                onHandleHighlight={onHighlight}
-              />
-            )
+            <>
+              <div
+                className={clsx(
+                  'selection-buttons flex h-full w-full p-2',
+                  isVertical ? 'flex-row items-stretch gap-2' : 'flex-col gap-1.5',
+                )}
+              >
+                {primaryButtons.map((button) => {
+                  const Icon = button.Icon;
+                  return (
+                    <button
+                      key={button.tooltipText}
+                      type='button'
+                      title={!highlightOptionsVisible ? button.tooltipText : undefined}
+                      aria-label={button.tooltipText}
+                      className={clsx(
+                        'btn btn-primary flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-md px-3',
+                        isVertical ? 'h-full w-10 p-0' : 'h-9 w-full',
+                      )}
+                      onClick={button.onClick}
+                      disabled={button.disabled}
+                    >
+                      <Icon className='size-4 shrink-0' />
+                      <span className={clsx('text-sm font-semibold', isVertical && 'sr-only')}>
+                        {button.labelText || button.tooltipText}
+                      </span>
+                    </button>
+                  );
+                })}
+                <div
+                  className={clsx(
+                    'flex min-w-0 flex-1 items-center justify-between',
+                    isVertical ? 'flex-col overflow-y-auto' : 'flex-row overflow-x-auto',
+                  )}
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {secondaryButtons.map((button, index) => (
+                    <AnnotationToolButton
+                      key={`${button.tooltipText}-${index}`}
+                      showTooltip={!highlightOptionsVisible}
+                      tooltipText={button.tooltipText}
+                      Icon={button.Icon}
+                      onClick={button.onClick}
+                      disabled={button.disabled}
+                    />
+                  ))}
+                </div>
+              </div>
+              {highlightOptionsVisible && (
+                <HighlightOptions
+                  isVertical={isVertical}
+                  triangleDir={trianglePosition.dir!}
+                  popupWidth={isVertical ? popupHeight : popupWidth}
+                  popupHeight={isVertical ? popupWidth : popupHeight}
+                  selectedStyle={selectedStyle}
+                  selectedColor={selectedColor}
+                  onHandleHighlight={onHighlight}
+                />
+              )}
+            </>
           )}
         </div>
       </Popup>

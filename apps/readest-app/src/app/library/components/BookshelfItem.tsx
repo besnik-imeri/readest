@@ -87,7 +87,6 @@ interface BookshelfItemProps {
   coverFit: LibraryCoverFitType;
   isSelectMode: boolean;
   itemSelected: boolean;
-  transferProgress: number | null;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   toggleSelection: (hash: string) => void;
   handleGroupBooks: () => void;
@@ -95,7 +94,6 @@ interface BookshelfItemProps {
     book: Book,
     options?: { redownload?: boolean; queued?: boolean },
   ) => Promise<boolean>;
-  handleBookUpload: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleBookDelete: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleSetSelectMode: (selectMode: boolean) => void;
   handleShowDetailsBook: (book: Book) => void;
@@ -109,11 +107,9 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
   coverFit,
   isSelectMode,
   itemSelected,
-  transferProgress,
   setLoading,
   toggleSelection,
   handleGroupBooks,
-  handleBookUpload,
   handleBookDownload,
   handleSetSelectMode,
   handleShowDetailsBook,
@@ -240,18 +236,6 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
         showBookDetailsModal(book);
       },
     });
-    const downloadBookMenuItem = await MenuItem.new({
-      text: _('Download Book'),
-      action: async () => {
-        handleBookDownload(book, { queued: true });
-      },
-    });
-    const uploadBookMenuItem = await MenuItem.new({
-      text: _('Upload Book'),
-      action: async () => {
-        handleBookUpload(book);
-      },
-    });
     const deleteBookMenuItem = await MenuItem.new({
       text: _('Delete'),
       action: async () => {
@@ -272,12 +256,6 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
     }
     menu.append(showBookDetailsMenuItem);
     menu.append(showBookInFinderMenuItem);
-    if (book.uploadedAt && !book.downloadedAt) {
-      menu.append(downloadBookMenuItem);
-    }
-    if (!book.uploadedAt && book.downloadedAt) {
-      menu.append(uploadBookMenuItem);
-    }
     menu.append(deleteBookMenuItem);
     menu.popup();
   };
@@ -415,9 +393,6 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
               coverFit={coverFit}
               isSelectMode={isSelectMode}
               bookSelected={itemSelected}
-              transferProgress={transferProgress}
-              handleBookUpload={handleBookUpload}
-              handleBookDownload={handleBookDownload}
               showBookDetailsModal={showBookDetailsModal}
             />
           ) : (

@@ -98,6 +98,18 @@ export interface Book {
   primaryLanguage?: string;
 
   metadata?: BookMetadata;
+
+  marketplace?: {
+    libraryItemId: string;
+    listingId: string;
+    grantedByListingId?: string;
+    slug: string;
+    entitlementStatus: 'active' | 'revoked' | 'refunded';
+    offlineCachedAt?: number | null;
+    contentUrlExpiresAt?: number | null;
+    hasScenePack?: boolean;
+  };
+  exportAllowed?: boolean;
 }
 
 export interface BookGroupType {

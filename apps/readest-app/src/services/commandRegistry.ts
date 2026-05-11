@@ -3,8 +3,7 @@ import { SettingsPanelType } from '@/components/settings/SettingsDialog';
 import { RiFontSize, RiDashboardLine, RiTranslate } from 'react-icons/ri';
 import { VscSymbolColor } from 'react-icons/vsc';
 import { LiaHandPointerSolid } from 'react-icons/lia';
-import { IoAccessibilityOutline } from 'react-icons/io5';
-import { PiRobot, PiSpeakerHigh, PiSun, PiMoon } from 'react-icons/pi';
+import { PiSpeakerHigh, PiSun, PiMoon } from 'react-icons/pi';
 import { TbSunMoon } from 'react-icons/tb';
 import { MdRefresh } from 'react-icons/md';
 import { IconType } from 'react-icons';
@@ -153,8 +152,6 @@ const panelIcons: Record<SettingsPanelType, IconType> = {
   Control: LiaHandPointerSolid,
   TTS: PiSpeakerHigh,
   Language: RiTranslate,
-  AI: PiRobot,
-  Custom: IoAccessibilityOutline,
 };
 
 // font panel items
@@ -537,62 +534,6 @@ const languagePanelItems = [
   },
 ];
 
-// ai panel items
-const aiPanelItems = [
-  {
-    id: 'settings.ai.enableAssistant',
-    labelKey: _('Enable AI Assistant'),
-    keywords: ['ai', 'assistant', 'enable', 'chatbot', 'llm'],
-    section: 'AI',
-  },
-  {
-    id: 'settings.ai.provider',
-    labelKey: _('AI Provider'),
-    keywords: ['ai', 'provider', 'ollama', 'gateway', 'service'],
-    section: 'AI',
-  },
-  {
-    id: 'settings.ai.ollamaUrl',
-    labelKey: _('Ollama URL'),
-    keywords: ['ollama', 'url', 'server', 'endpoint', 'api'],
-    section: 'Ollama',
-  },
-  {
-    id: 'settings.ai.ollamaModel',
-    labelKey: _('Ollama Model'),
-    keywords: ['ollama', 'model', 'llama', 'mistral', 'gemma'],
-    section: 'Ollama',
-  },
-  {
-    id: 'settings.ai.gatewayApiKey',
-    labelKey: _('API Key'),
-    keywords: ['api', 'key', 'gateway', 'token', 'secret'],
-    section: 'AI Gateway',
-  },
-  {
-    id: 'settings.ai.gatewayModel',
-    labelKey: _('AI Gateway Model'),
-    keywords: ['gateway', 'model', 'openai', 'gpt', 'claude'],
-    section: 'AI Gateway',
-  },
-];
-
-// custom panel items
-const customPanelItems = [
-  {
-    id: 'settings.custom.contentCss',
-    labelKey: _('Custom Content CSS'),
-    keywords: ['custom', 'css', 'content', 'style', 'book'],
-    section: 'Custom CSS',
-  },
-  {
-    id: 'settings.custom.readerUiCss',
-    labelKey: _('Custom Reader UI CSS'),
-    keywords: ['custom', 'css', 'reader', 'ui', 'interface'],
-    section: 'Custom CSS',
-  },
-];
-
 const actionItems = [
   {
     id: 'action.toggleTheme',
@@ -615,11 +556,6 @@ const actionItems = [
     keywords: ['screen', 'wake', 'lock', 'awake', 'sleep', 'display'],
   },
   {
-    id: 'action.autoUpload',
-    labelKey: _('Auto Upload Books to Cloud'),
-    keywords: ['auto', 'upload', 'cloud', 'sync', 'backup'],
-  },
-  {
     id: 'action.reload',
     labelKey: _('Reload Page'),
     keywords: ['reload', 'refresh', 'page'],
@@ -634,11 +570,6 @@ const actionItems = [
     labelKey: _('About StoryBored'),
     keywords: ['about', 'storybored', 'version', 'info'],
   },
-  {
-    id: 'action.telemetry',
-    labelKey: _('Help improve Readest'),
-    keywords: ['telemetry', 'analytics', 'improve', 'statistics'],
-  },
 ];
 
 export interface CommandRegistryOptions {
@@ -648,11 +579,9 @@ export interface CommandRegistryOptions {
   toggleFullscreen: () => void;
   toggleAlwaysOnTop: () => void;
   toggleScreenWakeLock: () => void;
-  toggleAutoUpload: () => void;
   reloadPage: () => void;
   toggleOpenLastBooks: () => void;
   showAbout: () => void;
-  toggleTelemetry: () => void;
   isDesktop: boolean;
   // TODO: add reader-specific actions when reader is open (tts, bookmark, etc.)
 }
@@ -702,18 +631,6 @@ export const buildCommandRegistry = (options: CommandRegistryOptions): CommandIt
   // add language panel items
   for (const def of languagePanelItems) {
     items.push(createSettingsItem(def, 'Language'));
-  }
-
-  // add ai panel items (only in dev, as of now atleast)
-  if (process.env.NODE_ENV !== 'production') {
-    for (const def of aiPanelItems) {
-      items.push(createSettingsItem(def, 'AI'));
-    }
-  }
-
-  // add custom panel items
-  for (const def of customPanelItems) {
-    items.push(createSettingsItem(def, 'Custom'));
   }
 
   // add action items
@@ -775,13 +692,6 @@ export const buildCommandRegistry = (options: CommandRegistryOptions): CommandIt
 
   items.push(
     createActionItem({
-      id: 'action.autoUpload',
-      action: options.toggleAutoUpload,
-    }),
-  );
-
-  items.push(
-    createActionItem({
       id: 'action.reload',
       icon: MdRefresh,
       action: options.reloadPage,
@@ -800,13 +710,6 @@ export const buildCommandRegistry = (options: CommandRegistryOptions): CommandIt
     createActionItem({
       id: 'action.about',
       action: options.showAbout,
-    }),
-  );
-
-  items.push(
-    createActionItem({
-      id: 'action.telemetry',
-      action: options.toggleTelemetry,
     }),
   );
 

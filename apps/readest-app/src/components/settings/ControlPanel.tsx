@@ -11,7 +11,10 @@ import { getStyles } from '@/utils/style';
 import { getMaxInlineSize } from '@/utils/config';
 import { saveSysSettings, saveViewSettings } from '@/helpers/settings';
 import { SettingsPanelPanelProp } from './SettingsDialog';
-import { annotationToolQuickActions } from '@/app/reader/components/annotator/AnnotationTools';
+import {
+  annotationToolQuickActions,
+  isAnnotationToolQuickAction,
+} from '@/app/reader/components/annotator/AnnotationTools';
 import NumberInput from './NumberInput';
 import Select from '../Select';
 
@@ -25,6 +28,9 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
   const { acquireVolumeKeyInterception, releaseVolumeKeyInterception } = useDeviceControlStore();
   const bookData = getBookData(bookKey);
   const viewSettings = getViewSettings(bookKey) || settings.globalViewSettings;
+  const savedAnnotationQuickAction = isAnnotationToolQuickAction(viewSettings.annotationQuickAction)
+    ? viewSettings.annotationQuickAction
+    : null;
 
   const [isScrolledMode, setScrolledMode] = useState(viewSettings.scrolled);
   const [noContinuousScroll, setNoContinuousScroll] = useState(viewSettings.noContinuousScroll);
@@ -41,9 +47,7 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
   const [enableAnnotationQuickActions, setEnableAnnotationQuickActions] = useState(
     viewSettings.enableAnnotationQuickActions,
   );
-  const [annotationQuickAction, setAnnotationQuickAction] = useState(
-    viewSettings.annotationQuickAction,
-  );
+  const [annotationQuickAction, setAnnotationQuickAction] = useState(savedAnnotationQuickAction);
   const [copyToNotebook, setCopyToNotebook] = useState(viewSettings.copyToNotebook);
   const [animated, setAnimated] = useState(viewSettings.animated);
   const [isEink, setIsEink] = useState(viewSettings.isEink);
@@ -227,7 +231,8 @@ const ControlPanel: React.FC<SettingsPanelPanelProp> = ({ bookKey, onRegisterRes
   };
 
   const handleSelectAnnotationQuickAction = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const action = event.target.value as typeof annotationQuickAction;
+    const selectedAction = event.target.value as typeof annotationQuickAction;
+    const action = isAnnotationToolQuickAction(selectedAction) ? selectedAction : null;
     setAnnotationQuickAction(action);
     saveViewSettings(envConfig, bookKey, 'annotationQuickAction', action, false, true);
   };

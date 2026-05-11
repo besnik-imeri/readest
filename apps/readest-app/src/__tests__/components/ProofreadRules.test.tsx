@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
@@ -410,7 +410,7 @@ describe('ProofreadRulesManager', () => {
     expect(within(ciRuleElement!).getAllByText(/No/)).toBeTruthy();
   });
 
-  it('opens when BookMenu item is clicked (integration)', async () => {
+  it('does not expose proofread rules from BookMenu', async () => {
     // Arrange stores
     (useSettingsStore.setState as unknown as (state: unknown) => void)({
       settings: {
@@ -425,25 +425,9 @@ describe('ProofreadRulesManager', () => {
     });
     useSidebarStore.setState({ sideBarBookKey: 'book1' });
 
-    // Render both menu and window
-    renderWithProviders(
-      <div>
-        <BookMenu />
-        <ProofreadRulesManager />
-      </div>,
-    );
+    renderWithProviders(<BookMenu />);
 
-    // wait a tick so effects attach
-    await Promise.resolve();
-
-    // Click the menu item
-    const menuItem = screen.getByRole('menuitem', { name: 'Proofread' });
-    fireEvent.click(menuItem);
-
-    // The dialog should open
-    const dialog = await screen.findByRole('dialog');
-
-    expect(within(dialog).getByText('Proofread Replacement Rules')).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: 'Proofread' })).toBeNull();
   });
 
   it('shows empty state messages when no rules exist', async () => {

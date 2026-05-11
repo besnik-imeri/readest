@@ -81,11 +81,6 @@ export const CommandPaletteProvider: React.FC<CommandPaletteProviderProps> = ({ 
     saveSysSettings(envConfig, 'screenWakeLock', newValue);
   }, [envConfig, settings.screenWakeLock]);
 
-  const toggleAutoUpload = useCallback(() => {
-    const newValue = !settings.autoUpload;
-    saveSysSettings(envConfig, 'autoUpload', newValue);
-  }, [envConfig, settings.autoUpload]);
-
   const reloadPage = useCallback(() => {
     window.location.reload();
   }, []);
@@ -98,11 +93,6 @@ export const CommandPaletteProvider: React.FC<CommandPaletteProviderProps> = ({ 
   const showAbout = useCallback(() => {
     setAboutDialogVisible(true);
   }, []);
-
-  const toggleTelemetry = useCallback(() => {
-    const newValue = !settings.telemetryEnabled;
-    saveSysSettings(envConfig, 'telemetryEnabled', newValue);
-  }, [envConfig, settings.telemetryEnabled]);
 
   const openSettingsPanel = useCallback(
     (_panel: SettingsPanelType, itemId?: string) => {
@@ -126,11 +116,9 @@ export const CommandPaletteProvider: React.FC<CommandPaletteProviderProps> = ({ 
         toggleFullscreen,
         toggleAlwaysOnTop,
         toggleScreenWakeLock,
-        toggleAutoUpload,
         reloadPage,
         toggleOpenLastBooks,
         showAbout,
-        toggleTelemetry,
         isDesktop,
       }),
     [
@@ -140,11 +128,9 @@ export const CommandPaletteProvider: React.FC<CommandPaletteProviderProps> = ({ 
       toggleFullscreen,
       toggleAlwaysOnTop,
       toggleScreenWakeLock,
-      toggleAutoUpload,
       reloadPage,
       toggleOpenLastBooks,
       showAbout,
-      toggleTelemetry,
       isDesktop,
     ],
   );

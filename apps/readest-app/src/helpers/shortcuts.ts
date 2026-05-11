@@ -118,19 +118,9 @@ const DEFAULT_SHORTCUTS = {
     description: _('Dictionary Lookup'),
     section: 'Selection',
   },
-  onWikipediaSelection: {
-    keys: ['ctrl+w', 'cmd+w'],
-    description: _('Wikipedia Lookup'),
-    section: 'Selection',
-  },
   onReadAloudSelection: {
     keys: ['ctrl+r', 'cmd+r'],
     description: _('Read Aloud Selection'),
-    section: 'Selection',
-  },
-  onProofreadSelection: {
-    keys: ['ctrl+p', 'cmd+p'],
-    description: _('Proofread Selection'),
     section: 'Selection',
   },
   onOpenFontLayoutSettings: {

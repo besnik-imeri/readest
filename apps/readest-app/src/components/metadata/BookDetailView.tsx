@@ -1,8 +1,6 @@
 import clsx from 'clsx';
 import React from 'react';
 import {
-  MdOutlineCloudDownload,
-  MdOutlineCloudUpload,
   MdOutlineDelete,
   MdOutlineEdit,
   MdSaveAlt,
@@ -34,10 +32,7 @@ interface BookDetailViewProps {
   fileSize: number | null;
   onEdit?: () => void;
   onDelete?: () => void;
-  onDeleteCloudBackup?: () => void;
   onDeleteLocalCopy?: () => void;
-  onDownload?: () => void;
-  onUpload?: () => void;
   onExport?: () => void;
 }
 
@@ -47,15 +42,13 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
   fileSize,
   onEdit,
   onDelete,
-  onDeleteCloudBackup,
   onDeleteLocalCopy,
-  onDownload,
-  onUpload,
   onExport,
 }) => {
   const _ = useTranslation();
   const { envConfig } = useEnv();
   const { settings } = useSettingsStore();
+  const canExportBook = book.exportAllowed !== false;
 
   const toggleSeriesCollapse = () => {
     saveSysSettings(envConfig, 'metadataSeriesCollapsed', !settings.metadataSeriesCollapsed);
@@ -111,40 +104,18 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                     'border-base-300 !bg-base-200 z-20 mt-1 max-w-[90vw] shadow-2xl',
                   )}
                 >
+                  <MenuItem noIcon transient label={_('Delete Book')} onClick={onDelete} />
                   <MenuItem
                     noIcon
                     transient
-                    label={_('Remove from Cloud & Device')}
-                    onClick={onDelete}
-                  />
-                  <MenuItem
-                    noIcon
-                    transient
-                    label={_('Remove from Cloud Only')}
-                    onClick={onDeleteCloudBackup}
-                    disabled={!book.uploadedAt}
-                  />
-                  <MenuItem
-                    noIcon
-                    transient
-                    label={_('Remove from Device Only')}
+                    label={_('Remove from Device')}
                     onClick={onDeleteLocalCopy}
                     disabled={!book.downloadedAt}
                   />
                 </div>
               </Dropdown>
             )}
-            {book.uploadedAt && onDownload && (
-              <button onClick={onDownload} title={_('Download from Cloud')}>
-                <MdOutlineCloudDownload className='fill-base-content' />
-              </button>
-            )}
-            {book.downloadedAt && onUpload && (
-              <button onClick={onUpload} title={_('Upload to Cloud')}>
-                <MdOutlineCloudUpload className='fill-base-content' />
-              </button>
-            )}
-            {book.downloadedAt && onExport && (
+            {book.downloadedAt && onExport && canExportBook && (
               <button onClick={onExport} title={_('Export Book')}>
                 <MdSaveAlt className='fill-base-content' />
               </button>

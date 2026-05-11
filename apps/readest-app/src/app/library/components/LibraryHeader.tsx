@@ -5,7 +5,7 @@ import { FaSearch } from 'react-icons/fa';
 import { PiPlus } from 'react-icons/pi';
 import { PiSelectionAll, PiSelectionAllFill } from 'react-icons/pi';
 import { PiDotsThreeCircle } from 'react-icons/pi';
-import { MdOutlineMenu } from 'react-icons/md';
+import { MdOutlineMenu, MdStorefront } from 'react-icons/md';
 import { IoMdCloseCircle } from 'react-icons/io';
 
 import { useEnv } from '@/context/EnvContext';
@@ -25,10 +25,9 @@ import ViewMenu from './ViewMenu';
 interface LibraryHeaderProps {
   isSelectMode: boolean;
   isSelectAll: boolean;
-  onPullLibrary: () => void;
   onImportBooksFromFiles: () => void;
   onImportBooksFromDirectory?: () => void;
-  onOpenCatalogManager: () => void;
+  onOpenMarketplace?: () => void;
   onToggleSelectMode: () => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
@@ -37,10 +36,9 @@ interface LibraryHeaderProps {
 const LibraryHeader: React.FC<LibraryHeaderProps> = ({
   isSelectMode,
   isSelectAll,
-  onPullLibrary,
   onImportBooksFromFiles,
   onImportBooksFromDirectory,
-  onOpenCatalogManager,
+  onOpenMarketplace,
   onToggleSelectMode,
   onSelectAll,
   onDeselectAll,
@@ -161,22 +159,33 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               <ImportMenu
                 onImportBooksFromFiles={onImportBooksFromFiles}
                 onImportBooksFromDirectory={onImportBooksFromDirectory}
-                onOpenCatalogManager={onOpenCatalogManager}
               />
             </Dropdown>
-            {isMobile ? null : (
+            {onOpenMarketplace && (
               <button
-                onClick={onToggleSelectMode}
-                aria-label={_('Select Books')}
-                title={_('Select Books')}
+                onClick={onOpenMarketplace}
+                aria-label={_('Open Marketplace')}
+                title={_('Open Marketplace')}
                 className='h-6'
               >
-                {isSelectMode ? (
-                  <PiSelectionAllFill role='button' className='text-base-content/60 h-6 w-6' />
-                ) : (
-                  <PiSelectionAll role='button' className='text-base-content/60 h-6 w-6' />
-                )}
+                <MdStorefront role='button' className='text-base-content/60 h-6 w-6' />
               </button>
+            )}
+            {isMobile ? null : (
+              <>
+                <button
+                  onClick={onToggleSelectMode}
+                  aria-label={_('Select Books')}
+                  title={_('Select Books')}
+                  className='h-6'
+                >
+                  {isSelectMode ? (
+                    <PiSelectionAllFill role='button' className='text-base-content/60 h-6 w-6' />
+                  ) : (
+                    <PiSelectionAll role='button' className='text-base-content/60 h-6 w-6' />
+                  )}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -213,7 +222,7 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0'
               toggleButton={<MdOutlineMenu role='none' size={iconSize18} />}
             >
-              <SettingsMenu onPullLibrary={onPullLibrary} />
+              <SettingsMenu />
             </Dropdown>
             {appService?.hasWindowBar && (
               <WindowButtons
