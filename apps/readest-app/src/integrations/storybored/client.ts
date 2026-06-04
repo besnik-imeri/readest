@@ -11,7 +11,7 @@ import type {
 
 const STORYBORED_ENABLED_FLAG = process.env['NEXT_PUBLIC_STORYBORED_ENABLED'];
 const STORYBORED_API_BASE_URL = process.env['NEXT_PUBLIC_STORYBORED_API_BASE_URL'];
-const DEFAULT_LOCAL_API_BASE_URL = 'http://localhost:4000';
+const DEFAULT_LOCAL_API_BASE_URL = 'https://api.storybored.localhost';
 
 function getStoryBoredApiBaseUrl(): string {
   if (STORYBORED_API_BASE_URL) return STORYBORED_API_BASE_URL.replace(/\/$/, '');

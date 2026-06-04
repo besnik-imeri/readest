@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const allowedOrigins = [
   'https://web.readest.com',
+  'https://storybored.localhost',
+  'https://admin.storybored.localhost',
+  'https://reader.storybored.localhost',
   'https://tauri.localhost',
   'http://tauri.localhost',
-  'http://localhost:3000',
-  'http://localhost:3001',
   'tauri://localhost',
 ];
 

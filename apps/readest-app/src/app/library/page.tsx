@@ -80,7 +80,7 @@ const LibraryPageWithSearchParams = () => {
 
 type VisibleDeleteAction = 'both' | 'local';
 
-const DEFAULT_MARKETPLACE_URL = 'http://localhost:3001/marketplace';
+const DEFAULT_MARKETPLACE_URL = 'https://storybored.localhost/marketplace';
 
 function getMarketplaceUrl(): string {
   return process.env['NEXT_PUBLIC_MARKETPLACE_URL'] || DEFAULT_MARKETPLACE_URL;
