@@ -4,6 +4,7 @@
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "webworker", "esnext"],
     "allowJs": true,
+    "erasableSyntaxOnly": false,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,

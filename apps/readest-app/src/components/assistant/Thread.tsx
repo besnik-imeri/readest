@@ -3,12 +3,12 @@
 import { useEffect, useRef, type FC } from 'react';
 import {
   ActionBarPrimitive,
-  AssistantIf,
+  AuiIf,
   BranchPickerPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
-  useAssistantState,
+  useAuiState,
   useThreadViewport,
   useThread,
 } from '@assistant-ui/react';
@@ -176,7 +176,7 @@ export const Thread: FC<ThreadProps> = ({
         </ThreadPrimitive.Empty>
       )}
 
-      <AssistantIf condition={(s) => s.thread.isEmpty === false}>
+      <AuiIf condition={(s) => s.thread.isEmpty === false}>
         <div
           className={cn(
             'relative min-h-0 flex-1 transition-opacity duration-300',
@@ -208,7 +208,7 @@ export const Thread: FC<ThreadProps> = ({
         </div>
 
         <Composer onClear={onClear} onResetIndex={onResetIndex} />
-      </AssistantIf>
+      </AuiIf>
     </ThreadPrimitive.Root>
   );
 };
@@ -219,8 +219,8 @@ interface ComposerProps {
 }
 
 const Composer: FC<ComposerProps> = ({ onClear, onResetIndex }) => {
-  const isEmpty = useAssistantState((s) => s.composer.isEmpty);
-  const isRunning = useAssistantState((s) => s.thread.isRunning);
+  const isEmpty = useAuiState((s) => s.composer.isEmpty);
+  const isRunning = useAuiState((s) => s.thread.isRunning);
 
   return (
     <ComposerPrimitive.Root
@@ -293,7 +293,7 @@ const AssistantMessage: FC<AssistantMessageProps> = ({ sources = [] }) => {
           </div>
         </div>
 
-        <AssistantIf condition={(s) => s.message.status?.type !== 'running'}>
+        <AuiIf condition={(s) => s.message.status?.type !== 'running'}>
           <div className='animate-in fade-in mt-0.5 flex h-6 w-full items-center justify-start gap-0.5 duration-300'>
             <ActionBarPrimitive.Root className='-ml-1 flex items-center gap-0.5'>
               <BranchPicker />
@@ -337,16 +337,16 @@ const AssistantMessage: FC<AssistantMessageProps> = ({ sources = [] }) => {
                 <RefreshCwIcon className='size-3' />
               </ActionBarPrimitive.Reload>
               <ActionBarPrimitive.Copy className='text-base-content/40 hover:bg-base-200 hover:text-base-content flex size-6 items-center justify-center rounded-full transition-colors'>
-                <AssistantIf condition={({ message }) => message.isCopied}>
+                <AuiIf condition={({ message }) => message.isCopied}>
                   <CheckIcon className='size-3' />
-                </AssistantIf>
-                <AssistantIf condition={({ message }) => !message.isCopied}>
+                </AuiIf>
+                <AuiIf condition={({ message }) => !message.isCopied}>
                   <CopyIcon className='size-3' />
-                </AssistantIf>
+                </AuiIf>
               </ActionBarPrimitive.Copy>
             </ActionBarPrimitive.Root>
           </div>
-        </AssistantIf>
+        </AuiIf>
       </div>
     </MessagePrimitive.Root>
   );
@@ -370,12 +370,12 @@ const UserMessage: FC = () => {
               <PencilIcon className='size-3' />
             </ActionBarPrimitive.Edit>
             <ActionBarPrimitive.Copy className='text-base-content/40 hover:bg-base-200 hover:text-base-content flex size-6 items-center justify-center rounded-full transition-colors'>
-              <AssistantIf condition={({ message }) => message.isCopied}>
+              <AuiIf condition={({ message }) => message.isCopied}>
                 <CheckIcon className='size-3' />
-              </AssistantIf>
-              <AssistantIf condition={({ message }) => !message.isCopied}>
+              </AuiIf>
+              <AuiIf condition={({ message }) => !message.isCopied}>
                 <CopyIcon className='size-3' />
-              </AssistantIf>
+              </AuiIf>
             </ActionBarPrimitive.Copy>
           </ActionBarPrimitive.Root>
         </div>

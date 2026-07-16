@@ -5,11 +5,7 @@ import Select from '@/components/Select';
 import ColorInput from './ColorInput';
 
 export type TTSHighlightStyle =
-  | 'highlight'
-  | 'underline'
-  | 'strikethrough'
-  | 'squiggly'
-  | 'outline';
+  'highlight' | 'underline' | 'strikethrough' | 'squiggly' | 'outline';
 
 interface TTSHighlightStyleEditorProps {
   style: TTSHighlightStyle;

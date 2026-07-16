@@ -1,12 +1,7 @@
 import { PlanType } from '@/types/quota';
 
 export type IAPStatus =
-  | 'active'
-  | 'expired'
-  | 'cancelled'
-  | 'in_grace_period'
-  | 'revoked'
-  | 'pending';
+  'active' | 'expired' | 'cancelled' | 'in_grace_period' | 'revoked' | 'pending';
 
 export interface VerifiedIAP {
   platform: 'ios' | 'android';

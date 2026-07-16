@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   AssistantRuntimeProvider,
   useLocalRuntime,
-  useAssistantRuntime,
+  useAui,
   type ThreadMessage,
   type ThreadHistoryAdapter,
 } from '@assistant-ui/react';
@@ -204,7 +204,7 @@ const ThreadWrapper = ({
   hasActiveConversation: boolean;
 }) => {
   const [sources, setSources] = useState(getLastSources());
-  const assistantRuntime = useAssistantRuntime();
+  const aui = useAui();
   const { setActiveConversation } = useAIChatStore();
 
   useEffect(() => {
@@ -218,8 +218,8 @@ const ThreadWrapper = ({
     clearLastSources();
     setSources([]);
     setActiveConversation(null);
-    assistantRuntime.switchToNewThread();
-  }, [assistantRuntime, setActiveConversation]);
+    aui.threads().switchToNewThread();
+  }, [aui, setActiveConversation]);
 
   return (
     <Thread

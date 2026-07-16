@@ -59,8 +59,7 @@ const useShortcuts = (actions: KeyActionHandlers, dependencies: React.Dependency
     for (const [actionName, actionHandler] of Object.entries(actions)) {
       const shortcutKey = actionName as keyof ShortcutConfig;
       const handler = actionHandler as
-        | ((event?: KeyboardEvent | MessageEvent) => void | boolean)
-        | undefined;
+        ((event?: KeyboardEvent | MessageEvent) => void | boolean) | undefined;
       const shortcutEntry = shortcuts[shortcutKey as keyof ShortcutConfig];
       // console.log('Checking action:', shortcutKey);
       if (

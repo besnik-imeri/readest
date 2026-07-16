@@ -4,16 +4,7 @@ import { TTSMediaMetadataMode } from '@/services/tts/types';
 import { AnnotationToolType } from './annotator';
 
 export type BookFormat =
-  | 'EPUB'
-  | 'PDF'
-  | 'MOBI'
-  | 'AZW'
-  | 'AZW3'
-  | 'CBZ'
-  | 'FB2'
-  | 'FBZ'
-  | 'TXT'
-  | 'MD';
+  'EPUB' | 'PDF' | 'MOBI' | 'AZW' | 'AZW3' | 'CBZ' | 'FB2' | 'FBZ' | 'TXT' | 'MD';
 export type BookNoteType = 'bookmark' | 'annotation' | 'excerpt';
 export type ReadingStatus = 'unread' | 'reading' | 'finished';
 export type HighlightStyle = 'highlight' | 'underline' | 'squiggly';
@@ -231,15 +222,7 @@ export interface BookFont {
 }
 
 export type ConvertChineseVariant =
-  | 'none'
-  | 's2t'
-  | 't2s'
-  | 's2tw'
-  | 's2hk'
-  | 's2twp'
-  | 'tw2s'
-  | 'hk2s'
-  | 'tw2sp';
+  'none' | 's2t' | 't2s' | 's2tw' | 's2hk' | 's2twp' | 'tw2s' | 'hk2s' | 'tw2sp';
 
 export interface BookLanguage {
   replaceQuotationMarks: boolean;

@@ -2,10 +2,8 @@ import type { Book, BookProgress } from '@/types/book';
 import type { BookDoc } from '@/libs/document';
 import { findTocItemBS } from '@/services/nav';
 import type { TextSelection } from '@/utils/sel';
+import { getSelectionContext } from './passage-context';
 import type { StoryBoredPassage } from './types';
-
-const MAX_CONTEXT_LENGTH = 12000;
-const CONTEXT_RADIUS = 1600;
 
 interface CreateStoryBoredPassageInput {
   bookKey: string;
@@ -17,22 +15,6 @@ interface CreateStoryBoredPassageInput {
 
 export function getStoryBoredBookId(bookKey: string, book?: Book): string {
   return book?.metaHash || book?.hash || bookKey.split('-')[0] || bookKey;
-}
-
-function getSelectionContext(selection: TextSelection): string | undefined {
-  const text = selection.range.commonAncestorContainer.textContent?.replace(/\s+/g, ' ').trim();
-  if (!text) return undefined;
-
-  const selectedText = selection.text.replace(/\s+/g, ' ').trim();
-  const selectedIndex = text.indexOf(selectedText);
-
-  if (selectedIndex === -1) {
-    return text.slice(0, MAX_CONTEXT_LENGTH);
-  }
-
-  const start = Math.max(0, selectedIndex - CONTEXT_RADIUS);
-  const end = Math.min(text.length, selectedIndex + selectedText.length + CONTEXT_RADIUS);
-  return text.slice(start, end).slice(0, MAX_CONTEXT_LENGTH);
 }
 
 function getChapter(bookDoc: BookDoc | undefined, selection: TextSelection): string | undefined {
@@ -62,7 +44,7 @@ export function createStoryBoredPassage({
     selectedText: selection.text.trim(),
     stylePreset: 'cinematic-literary',
   };
-  const surroundingContext = getSelectionContext(selection);
+  const surroundingContext = getSelectionContext(selection.range, book?.primaryLanguage);
   const chapter = getChapter(bookDoc, selection);
   const location = getLocation(selection, progress);
 

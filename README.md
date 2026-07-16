@@ -72,8 +72,8 @@
 
 | **Feature**                     | **Description**                                                            | **Priority** |
 | ------------------------------- | -------------------------------------------------------------------------- | ------------ |
-| **AI-Powered Summarization**    | Generate summaries of books or chapters using AI for quick insights.       | 🛠           |
-| **Advanced Reading Stats**      | Track reading time, pages read, and more for detailed insights.            | 🛠           |
+| **AI-Powered Summarization**    | Generate summaries of books or chapters using AI for quick insights.       | 🛠            |
+| **Advanced Reading Stats**      | Track reading time, pages read, and more for detailed insights.            | 🛠            |
 | **Audiobook Support**           | Extend functionality to play and manage audiobooks.                        | 🔄           |
 | **Handwriting Annotations**     | Add support for handwriting annotations using a pen on compatible devices. | 🔄           |
 | **In-Library Full-Text Search** | Search across your entire ebook library to find topics and quotes.         | 🔄           |

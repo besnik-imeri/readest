@@ -3,13 +3,7 @@ import { QuotaFeature, UserPlan } from './quota';
 export type PaymentProvider = 'stripe' | 'apple' | 'google';
 
 export type PaymentStatus =
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'succeeded'
-  | 'failed'
-  | 'refunded'
-  | 'cancelled';
+  'pending' | 'processing' | 'completed' | 'succeeded' | 'failed' | 'refunded' | 'cancelled';
 
 export const COMPLETED_PAYMENT_STATUSES: PaymentStatus[] = ['completed', 'succeeded'];
 
