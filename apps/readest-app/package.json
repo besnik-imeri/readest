@@ -73,6 +73,7 @@
     "worktree:rm": "pnpm exec tsx scripts/worktree-rm.ts"
   },
   "dependencies": {
+    "@learningbored/sdk": "link:../../../packages/sdk",
     "@ai-sdk/react": "^3.0.49",
     "@assistant-ui/react": "0.11.56",
     "@assistant-ui/react-ai-sdk": "1.1.21",

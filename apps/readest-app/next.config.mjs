@@ -45,6 +45,9 @@ const nextConfig = {
     },
   },
   transpilePackages: [
+    '@learningbored/sdk',
+    '@learningbored/board-spec',
+    '@learningbored/types',
     'ai',
     'ai-sdk-ollama',
     '@ai-sdk/react',

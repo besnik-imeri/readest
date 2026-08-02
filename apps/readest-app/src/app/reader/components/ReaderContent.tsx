@@ -36,6 +36,8 @@ import SideBar from './sidebar/SideBar';
 import Notebook from './notebook/Notebook';
 import BooksGrid from './BooksGrid';
 import SettingsDialog from '@/components/settings/SettingsDialog';
+import LearningBoredPanelHost from '@/integrations/learningbored/LearningBoredPanelHost';
+import LearningBoredSdkClientProvider from '@/integrations/learningbored/LearningBoredSdkClientProvider';
 
 const ReaderContent: React.FC<{ ids?: string; settings: SystemSettings }> = ({ ids, settings }) => {
   const _ = useTranslation();
@@ -233,13 +235,18 @@ const ReaderContent: React.FC<{ ids?: string; settings: SystemSettings }> = ({ i
   }
 
   return (
-    <div className='reader-content full-height flex'>
+    <div className='reader-content full-height flex min-h-0 flex-col sm:flex-row'>
       <SideBar />
-      <BooksGrid
-        bookKeys={bookKeys}
-        onCloseBook={handleCloseBook}
-        onGoToLibrary={handleCloseBooksToLibrary}
-      />
+      <div className='min-h-0 min-w-0 flex-1'>
+        <BooksGrid
+          bookKeys={bookKeys}
+          onCloseBook={handleCloseBook}
+          onGoToLibrary={handleCloseBooksToLibrary}
+        />
+      </div>
+      <LearningBoredSdkClientProvider>
+        <LearningBoredPanelHost />
+      </LearningBoredSdkClientProvider>
       {isSettingsDialogOpen && <SettingsDialog bookKey={settingsDialogBookKey} />}
       <Notebook />
       {showDetailsBook && (

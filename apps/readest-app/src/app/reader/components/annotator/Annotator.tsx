@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RiDeleteBinLine } from 'react-icons/ri';
-import { MdDashboard } from 'react-icons/md';
 
 import * as CFI from 'foliate-js/epubcfi.js';
 import { Overlayer } from 'foliate-js/overlayer.js';
@@ -48,18 +47,12 @@ import TranslatorPopup from './TranslatorPopup';
 import useShortcuts from '@/hooks/useShortcuts';
 import ProofreadPopup from './ProofreadPopup';
 import ExportMarkdownDialog from './ExportMarkdownDialog';
-import LearningBoredCapturePanel from '@/integrations/learningbored/LearningBoredCapturePanel';
 import { getLearningBoredBookId } from '@/integrations/learningbored/book';
+import { publishLearningBoredCapture } from '@/integrations/learningbored/bridge';
 import { getLearningBoredCaptureCfi } from '@/integrations/learningbored/capture-preflight';
 import { isLearningBoredReaderEnabled } from '@/integrations/learningbored/config';
 import { captureLearningBoredPassage } from '@/integrations/learningbored/passage';
 import { isLearningBoredPdfCaptureUnsupportedError } from '@/integrations/learningbored/pdf-support';
-import {
-  clearLearningBoredReaderSession,
-  readLearningBoredReaderSession,
-  writeLearningBoredReaderSession,
-} from '@/integrations/learningbored/session';
-import type { LearningBoredCapturedPassage } from '@/integrations/learningbored/types';
 
 const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const _ = useTranslation();
@@ -111,10 +104,6 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     booknotes: BookNote[];
     booknoteGroups: { [href: string]: BooknoteGroup };
   } | null>(null);
-  const [showLearningBoredPanel, setShowLearningBoredPanel] = useState(false);
-  const [learningBoredPassage, setLearningBoredPassage] =
-    useState<LearningBoredCapturedPassage | null>(null);
-
   const [selectedStyle, setSelectedStyle] = useState<HighlightStyle>(
     settings.globalReadSettings.highlightStyle,
   );
@@ -507,18 +496,6 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   }, []);
 
   useEffect(() => {
-    if (!learningBoredReaderEnabled) {
-      setLearningBoredPassage(null);
-      setShowLearningBoredPanel(false);
-      return;
-    }
-
-    const session = readLearningBoredReaderSession(learningBoredBookId);
-    setLearningBoredPassage(session?.passage ?? null);
-    setShowLearningBoredPanel(session?.panelOpen ?? false);
-  }, [learningBoredBookId, learningBoredReaderEnabled]);
-
-  useEffect(() => {
     const updateBooknotesPage = async () => {
       const config = getConfig(bookKey);
       const view = getView(bookKey);
@@ -909,14 +886,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
         ...(chapter ? { chapter } : {}),
       });
 
-      setLearningBoredPassage(passage);
-      setShowLearningBoredPanel(true);
-      writeLearningBoredReaderSession({
-        bookId: learningBoredBookId,
-        panelOpen: true,
-        passage,
-        updatedAt: Date.now(),
-      });
+      publishLearningBoredCapture({ bookKey, passage });
       handleDismissPopupAndSelection();
     } catch (error) {
       if (isLearningBoredPdfCaptureUnsupportedError(error)) {
@@ -930,35 +900,6 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
         _('This passage could not be anchored. Try selecting text on one page.'),
       );
     }
-  };
-
-  const handleCloseLearningBoredPanel = () => {
-    setShowLearningBoredPanel(false);
-    if (!learningBoredPassage) return;
-
-    writeLearningBoredReaderSession({
-      bookId: learningBoredBookId,
-      panelOpen: false,
-      passage: learningBoredPassage,
-      updatedAt: Date.now(),
-    });
-  };
-
-  const handleOpenLearningBoredPanel = () => {
-    if (!learningBoredPassage) return;
-    setShowLearningBoredPanel(true);
-    writeLearningBoredReaderSession({
-      bookId: learningBoredBookId,
-      panelOpen: true,
-      passage: learningBoredPassage,
-      updatedAt: Date.now(),
-    });
-  };
-
-  const handleClearLearningBoredPassage = () => {
-    clearLearningBoredReaderSession(learningBoredBookId);
-    setLearningBoredPassage(null);
-    setShowLearningBoredPanel(false);
   };
 
   const handleStartEditAnnotation = useCallback(() => {
@@ -1214,23 +1155,6 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           onCancel={handleCancelExport}
           onExport={handleConfirmExport}
         />
-      )}
-      <LearningBoredCapturePanel
-        isOpen={showLearningBoredPanel}
-        passage={learningBoredPassage}
-        onClose={handleCloseLearningBoredPanel}
-        onClear={handleClearLearningBoredPassage}
-      />
-      {learningBoredReaderEnabled && !showLearningBoredPanel && learningBoredPassage && (
-        <button
-          type='button'
-          className='btn btn-primary fixed bottom-4 right-4 z-30 h-12 min-h-12 w-12 rounded-full p-0 shadow-xl'
-          aria-label={_('Open LearningBored passage preview')}
-          title={_('Open LearningBored passage preview')}
-          onClick={handleOpenLearningBoredPanel}
-        >
-          <MdDashboard className='size-5' />
-        </button>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearLearningBoredReaderSession,
   getLearningBoredReaderSessionStorageKey,
+  getLegacyLearningBoredReaderSessionStorageKey,
   LEARNINGBORED_READER_SESSION_MAX_AGE_MS,
   readLearningBoredReaderSession,
   writeLearningBoredReaderSession,
@@ -32,7 +33,20 @@ function createPassage(
   };
 }
 
-describe('LearningBored reader capture session', () => {
+function createSession(bookId: string, panelOpen = true) {
+  return {
+    bookId,
+    panelOpen,
+    passage: createPassage(bookId),
+    generationId: 'generation-1',
+    boardId: 'board-1',
+    showScaffold: false,
+    kind: 'process_flow' as const,
+    updatedAt: NOW,
+  };
+}
+
+describe('LearningBored reader session', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();
@@ -44,45 +58,50 @@ describe('LearningBored reader capture session', () => {
     vi.useRealTimers();
   });
 
-  it('round-trips a versioned session including open and closed panel state', () => {
-    const passage = createPassage('book-1');
-
-    writeLearningBoredReaderSession({
-      bookId: 'book-1',
-      panelOpen: true,
-      passage,
-      updatedAt: NOW,
-    });
+  it('round-trips generation, Board, scaffold, kind, and panel state in v2', () => {
+    writeLearningBoredReaderSession(createSession('book-1'));
     expect(readLearningBoredReaderSession('book-1')).toEqual({
-      version: 1,
-      bookId: 'book-1',
-      panelOpen: true,
-      passage,
-      updatedAt: NOW,
+      version: 2,
+      ...createSession('book-1'),
     });
 
-    writeLearningBoredReaderSession({
-      bookId: 'book-1',
-      panelOpen: false,
-      passage,
-      updatedAt: NOW,
-    });
+    writeLearningBoredReaderSession(createSession('book-1', false));
     expect(readLearningBoredReaderSession('book-1')?.panelOpen).toBe(false);
   });
 
-  it('keeps sessions scoped by book and clears only the requested book', () => {
-    writeLearningBoredReaderSession({
+  it('migrates a valid v1 capture without inventing generation state', () => {
+    const passage = createPassage('book-1');
+    const legacyKey = getLegacyLearningBoredReaderSessionStorageKey('book-1');
+    localStorage.setItem(
+      legacyKey,
+      JSON.stringify({
+        version: 1,
+        bookId: 'book-1',
+        panelOpen: true,
+        passage,
+        updatedAt: NOW,
+      }),
+    );
+
+    expect(readLearningBoredReaderSession('book-1')).toEqual({
+      version: 2,
       bookId: 'book-1',
       panelOpen: true,
-      passage: createPassage('book-1'),
+      passage,
+      generationId: null,
+      boardId: null,
+      showScaffold: true,
+      kind: null,
       updatedAt: NOW,
     });
-    writeLearningBoredReaderSession({
-      bookId: 'book/2',
-      panelOpen: false,
-      passage: createPassage('book/2'),
-      updatedAt: NOW,
-    });
+    expect(localStorage.getItem(legacyKey)).toBeNull();
+    expect(localStorage.getItem(getLearningBoredReaderSessionStorageKey('book-1'))).not.toBeNull();
+  });
+
+  it('keeps sessions scoped by book and clears current and legacy keys for one book', () => {
+    writeLearningBoredReaderSession(createSession('book-1'));
+    writeLearningBoredReaderSession(createSession('book/2', false));
+    localStorage.setItem(getLegacyLearningBoredReaderSessionStorageKey('book-1'), '{}');
 
     expect(readLearningBoredReaderSession('book-1')?.bookId).toBe('book-1');
     expect(readLearningBoredReaderSession('book/2')?.bookId).toBe('book/2');
@@ -90,17 +109,15 @@ describe('LearningBored reader capture session', () => {
 
     clearLearningBoredReaderSession('book-1');
     expect(readLearningBoredReaderSession('book-1')).toBeNull();
+    expect(
+      localStorage.getItem(getLegacyLearningBoredReaderSessionStorageKey('book-1')),
+    ).toBeNull();
     expect(readLearningBoredReaderSession('book/2')?.bookId).toBe('book/2');
   });
 
   it('expires stale sessions and removes them from storage', () => {
     const key = getLearningBoredReaderSessionStorageKey('book-1');
-    writeLearningBoredReaderSession({
-      bookId: 'book-1',
-      panelOpen: true,
-      passage: createPassage('book-1'),
-      updatedAt: NOW,
-    });
+    writeLearningBoredReaderSession(createSession('book-1'));
 
     vi.setSystemTime(NOW + LEARNINGBORED_READER_SESSION_MAX_AGE_MS + 1);
 
@@ -108,19 +125,13 @@ describe('LearningBored reader capture session', () => {
     expect(localStorage.getItem(key)).toBeNull();
   });
 
-  it('rejects malformed JSON, unsupported versions, wrong-book payloads, and future timestamps', () => {
+  it('rejects malformed JSON, unsupported versions, wrong books, and future timestamps', () => {
     const key = getLearningBoredReaderSessionStorageKey('book-1');
-    const base = {
-      version: 1,
-      bookId: 'book-1',
-      panelOpen: true,
-      passage: createPassage('book-1'),
-      updatedAt: NOW,
-    };
+    const base = { version: 2, ...createSession('book-1') };
 
     for (const corrupt of [
       '{bad json',
-      JSON.stringify({ ...base, version: 2 }),
+      JSON.stringify({ ...base, version: 3 }),
       JSON.stringify({ ...base, bookId: 'book-2' }),
       JSON.stringify({ ...base, updatedAt: NOW + 1 }),
     ]) {
@@ -130,56 +141,40 @@ describe('LearningBored reader capture session', () => {
     }
   });
 
-  it('rejects empty text, a corrupt context offset, or a location scoped to another book', () => {
+  it('rejects corrupt passage offsets and impossible Board or kind state', () => {
     const key = getLearningBoredReaderSessionStorageKey('book-1');
     const passage = createPassage('book-1');
-    const base = {
-      version: 1,
-      bookId: 'book-1',
-      panelOpen: true,
-      passage,
-      updatedAt: NOW,
-    };
+    const base = { version: 2, ...createSession('book-1') };
 
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        ...base,
-        passage: { ...passage, selectedText: '' },
-      }),
-    );
-    expect(readLearningBoredReaderSession('book-1')).toBeNull();
-
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        ...base,
-        passage: { ...passage, contextOffset: passage.contextOffset + 1 },
-      }),
-    );
-    expect(readLearningBoredReaderSession('book-1')).toBeNull();
-
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        ...base,
-        passage: { ...passage, location: { ...passage.location, bookId: 'book-2' } },
-      }),
-    );
-    expect(readLearningBoredReaderSession('book-1')).toBeNull();
+    for (const corrupt of [
+      { ...base, passage: { ...passage, contextOffset: passage.contextOffset + 1 } },
+      { ...base, generationId: null, boardId: 'board-1' },
+      { ...base, kind: 'freeform_picture' },
+      { ...base, passage: null },
+    ]) {
+      localStorage.setItem(key, JSON.stringify(corrupt));
+      expect(readLearningBoredReaderSession('book-1')).toBeNull();
+    }
   });
 
-  it('allows panel state to persist before a passage has been captured', () => {
+  it('allows preferences and panel state before a passage has been captured', () => {
     writeLearningBoredReaderSession({
       bookId: 'book-1',
       panelOpen: true,
       passage: null,
+      generationId: null,
+      boardId: null,
+      showScaffold: false,
+      kind: 'timeline',
       updatedAt: NOW,
     });
 
     expect(readLearningBoredReaderSession('book-1')).toMatchObject({
+      version: 2,
       panelOpen: true,
       passage: null,
+      showScaffold: false,
+      kind: 'timeline',
     });
   });
 });
