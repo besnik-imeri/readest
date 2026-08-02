@@ -8,4 +8,4 @@ export type AnnotationToolType =
   | 'translate'
   | 'tts'
   | 'proofread'
-  | 'storybored';
+  | 'learningbored';

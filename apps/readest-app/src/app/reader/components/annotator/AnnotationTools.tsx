@@ -8,7 +8,7 @@ import { BsTranslate } from 'react-icons/bs';
 import { TbHexagonLetterD } from 'react-icons/tb';
 import { FaHeadphones } from 'react-icons/fa6';
 import { IoIosBuild } from 'react-icons/io';
-import { MdImageSearch } from 'react-icons/md';
+import { MdDashboard } from 'react-icons/md';
 import { AnnotationToolType } from '@/types/annotator';
 import { stubTranslation as _ } from '@/utils/misc';
 
@@ -99,10 +99,10 @@ export const annotationToolButtons = createAnnotationToolButtons([
     Icon: IoIosBuild,
   },
   {
-    type: 'storybored',
-    label: _('StoryBored'),
-    tooltip: _('Generate a scene from selected text'),
-    Icon: MdImageSearch,
+    type: 'learningbored',
+    label: _('Board it'),
+    tooltip: _('Board it — capture the selected passage for LearningBored'),
+    Icon: MdDashboard,
   },
 ]);
 

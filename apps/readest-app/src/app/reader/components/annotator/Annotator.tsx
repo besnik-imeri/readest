@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RiDeleteBinLine } from 'react-icons/ri';
-import { MdImageSearch } from 'react-icons/md';
+import { MdDashboard } from 'react-icons/md';
 
 import * as CFI from 'foliate-js/epubcfi.js';
 import { Overlayer } from 'foliate-js/overlayer.js';
@@ -48,14 +48,18 @@ import TranslatorPopup from './TranslatorPopup';
 import useShortcuts from '@/hooks/useShortcuts';
 import ProofreadPopup from './ProofreadPopup';
 import ExportMarkdownDialog from './ExportMarkdownDialog';
-import StoryBoredScenePanel from '@/integrations/storybored/StoryBoredScenePanel';
-import { isStoryBoredReaderEnabled } from '@/integrations/storybored/client';
-import { createStoryBoredPassage, getStoryBoredBookId } from '@/integrations/storybored/passage';
+import LearningBoredCapturePanel from '@/integrations/learningbored/LearningBoredCapturePanel';
+import { getLearningBoredBookId } from '@/integrations/learningbored/book';
+import { getLearningBoredCaptureCfi } from '@/integrations/learningbored/capture-preflight';
+import { isLearningBoredReaderEnabled } from '@/integrations/learningbored/config';
+import { captureLearningBoredPassage } from '@/integrations/learningbored/passage';
+import { isLearningBoredPdfCaptureUnsupportedError } from '@/integrations/learningbored/pdf-support';
 import {
-  isStoryBoredSceneActive,
-  readStoryBoredSceneSession,
-} from '@/integrations/storybored/session';
-import type { StoryBoredPassage, StoryBoredSceneGeneration } from '@/integrations/storybored/types';
+  clearLearningBoredReaderSession,
+  readLearningBoredReaderSession,
+  writeLearningBoredReaderSession,
+} from '@/integrations/learningbored/session';
+import type { LearningBoredCapturedPassage } from '@/integrations/learningbored/types';
 
 const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const _ = useTranslation();
@@ -78,7 +82,11 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const view = getView(bookKey);
   const viewSettings = getViewSettings(bookKey)!;
   const primaryLang = bookData.book?.primaryLanguage || 'en';
-  const storyBoredReaderEnabled = isStoryBoredReaderEnabled();
+  const learningBoredReaderEnabled = isLearningBoredReaderEnabled();
+  const learningBoredBookId = getLearningBoredBookId(
+    bookKey,
+    bookData.book === null ? undefined : bookData.book,
+  );
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -103,10 +111,9 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     booknotes: BookNote[];
     booknoteGroups: { [href: string]: BooknoteGroup };
   } | null>(null);
-  const [showStoryBoredPanel, setShowStoryBoredPanel] = useState(false);
-  const [storyBoredPassage, setStoryBoredPassage] = useState<StoryBoredPassage | null>(null);
-  const [storyBoredGenerationId, setStoryBoredGenerationId] = useState<string | null>(null);
-  const [storyBoredGenerationActive, setStoryBoredGenerationActive] = useState(false);
+  const [showLearningBoredPanel, setShowLearningBoredPanel] = useState(false);
+  const [learningBoredPassage, setLearningBoredPassage] =
+    useState<LearningBoredCapturedPassage | null>(null);
 
   const [selectedStyle, setSelectedStyle] = useState<HighlightStyle>(
     settings.globalReadSettings.highlightStyle,
@@ -140,7 +147,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const annotPopupBaseWidth = useResponsiveSize(300);
   const annotPopupButtonSlotWidth = useResponsiveSize(40);
   const visibleAnnotationToolCount = annotationToolButtons.filter(
-    ({ type }) => type !== 'storybored' || storyBoredReaderEnabled,
+    ({ type }) => type !== 'learningbored' || learningBoredReaderEnabled,
   ).length;
   const annotPopupWidth = Math.min(
     Math.max(
@@ -500,18 +507,16 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   }, []);
 
   useEffect(() => {
-    if (!storyBoredReaderEnabled || showStoryBoredPanel || storyBoredPassage) return;
+    if (!learningBoredReaderEnabled) {
+      setLearningBoredPassage(null);
+      setShowLearningBoredPanel(false);
+      return;
+    }
 
-    const bookId = getStoryBoredBookId(bookKey, bookData.book === null ? undefined : bookData.book);
-    const session = readStoryBoredSceneSession(bookId);
-    if (!session) return;
-
-    setStoryBoredPassage(session.passage);
-    setStoryBoredGenerationId(session.generationId);
-    setStoryBoredGenerationActive(true);
-    setShowStoryBoredPanel(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookKey, bookData.book?.hash, bookData.book?.metaHash]);
+    const session = readLearningBoredReaderSession(learningBoredBookId);
+    setLearningBoredPassage(session?.passage ?? null);
+    setShowLearningBoredPanel(session?.panelOpen ?? false);
+  }, [learningBoredBookId, learningBoredReaderEnabled]);
 
   useEffect(() => {
     const updateBooknotesPage = async () => {
@@ -853,35 +858,108 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     }
   };
 
-  const handleStoryBored = () => {
-    if (!selection || !selection.text) return;
-    const cfi = selection.cfi ?? view?.getCFI(selection.index, selection.range);
-    const storyBoredSelection = cfi ? { ...selection, cfi } : selection;
-
-    setStoryBoredPassage(
-      createStoryBoredPassage({
-        bookKey,
-        progress,
-        selection: storyBoredSelection,
-        ...(bookData.book ? { book: bookData.book } : {}),
-        ...(bookData.bookDoc ? { bookDoc: bookData.bookDoc } : {}),
-      }),
-    );
-    setStoryBoredGenerationId(null);
-    setStoryBoredGenerationActive(false);
-    setShowStoryBoredPanel(true);
-    handleDismissPopupAndSelection();
+  const showLearningBoredCaptureWarning = (message: string) => {
+    eventDispatcher.dispatch('toast', {
+      type: 'warning',
+      message,
+      timeout: 4000,
+    });
   };
 
-  const handleStoryBoredGenerationChange = useCallback(
-    (generation: StoryBoredSceneGeneration | null) => {
-      setStoryBoredGenerationId(generation?.id ?? null);
-      setStoryBoredGenerationActive(
-        generation ? isStoryBoredSceneActive(generation.status) : false,
+  const handleLearningBored = () => {
+    if (!selection || selection.range.toString().length === 0) {
+      showLearningBoredCaptureWarning(_('Select a passage before using Board it.'));
+      return;
+    }
+
+    const documentFormat = bookData.book?.format;
+    if (!documentFormat) {
+      showLearningBoredCaptureWarning(
+        _('This passage could not be anchored. Try selecting text on one page.'),
       );
-    },
-    [],
-  );
+      return;
+    }
+
+    try {
+      // Capture the locator immediately while the selected DOM Range is still live.
+      const cfi = getLearningBoredCaptureCfi(documentFormat, () =>
+        view?.getCFI(selection.index, selection.range),
+      );
+      if (typeof cfi !== 'string' || cfi.length === 0) {
+        showLearningBoredCaptureWarning(
+          _('This passage could not be anchored. Try selecting text on one page.'),
+        );
+        return;
+      }
+
+      const chapter = bookData.bookDoc?.toc?.length
+        ? findTocItemBS(bookData.bookDoc.toc, cfi)?.label
+        : undefined;
+      const passage = captureLearningBoredPassage({
+        selectionRange: selection.range,
+        documentFormat,
+        bookId: learningBoredBookId,
+        cfi,
+        pageIndex: selection.index,
+        locale: primaryLang,
+        ...(selection.href || progress.sectionHref
+          ? { sectionHref: selection.href || progress.sectionHref }
+          : {}),
+        ...(Number.isFinite(selection.page) ? { pageLabel: String(selection.page) } : {}),
+        ...(chapter ? { chapter } : {}),
+      });
+
+      setLearningBoredPassage(passage);
+      setShowLearningBoredPanel(true);
+      writeLearningBoredReaderSession({
+        bookId: learningBoredBookId,
+        panelOpen: true,
+        passage,
+        updatedAt: Date.now(),
+      });
+      handleDismissPopupAndSelection();
+    } catch (error) {
+      if (isLearningBoredPdfCaptureUnsupportedError(error)) {
+        showLearningBoredCaptureWarning(
+          _('Board it is unavailable for PDF because exact selected text cannot be preserved.'),
+        );
+        return;
+      }
+
+      showLearningBoredCaptureWarning(
+        _('This passage could not be anchored. Try selecting text on one page.'),
+      );
+    }
+  };
+
+  const handleCloseLearningBoredPanel = () => {
+    setShowLearningBoredPanel(false);
+    if (!learningBoredPassage) return;
+
+    writeLearningBoredReaderSession({
+      bookId: learningBoredBookId,
+      panelOpen: false,
+      passage: learningBoredPassage,
+      updatedAt: Date.now(),
+    });
+  };
+
+  const handleOpenLearningBoredPanel = () => {
+    if (!learningBoredPassage) return;
+    setShowLearningBoredPanel(true);
+    writeLearningBoredReaderSession({
+      bookId: learningBoredBookId,
+      panelOpen: true,
+      passage: learningBoredPassage,
+      updatedAt: Date.now(),
+    });
+  };
+
+  const handleClearLearningBoredPassage = () => {
+    clearLearningBoredReaderSession(learningBoredBookId);
+    setLearningBoredPassage(null);
+    setShowLearningBoredPanel(false);
+  };
 
   const handleStartEditAnnotation = useCallback(() => {
     setShowAnnotPopup(false);
@@ -996,7 +1074,7 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   };
 
   const selectionAnnotated = selection?.annotated;
-  const toolButtons = annotationToolButtons.map(({ type, label, Icon }) => {
+  const toolButtons = annotationToolButtons.map(({ type, label, tooltip, Icon }) => {
     switch (type) {
       case 'copy':
         return { tooltipText: _(label), Icon, onClick: handleCopy };
@@ -1037,12 +1115,12 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           onClick: handleProofread,
           disabled: bookData.book?.format !== 'EPUB',
         };
-      case 'storybored':
+      case 'learningbored':
         return {
-          tooltipText: _(label),
+          tooltipText: _(tooltip),
           Icon,
-          onClick: handleStoryBored,
-          visible: storyBoredReaderEnabled,
+          onClick: handleLearningBored,
+          visible: learningBoredReaderEnabled,
         };
       default:
         return { tooltipText: '', Icon, onClick: () => {} };
@@ -1137,22 +1215,21 @@ const Annotator: React.FC<{ bookKey: string }> = ({ bookKey }) => {
           onExport={handleConfirmExport}
         />
       )}
-      <StoryBoredScenePanel
-        isOpen={showStoryBoredPanel}
-        passage={storyBoredPassage}
-        generationId={storyBoredGenerationId}
-        onGenerationChange={handleStoryBoredGenerationChange}
-        onClose={() => setShowStoryBoredPanel(false)}
+      <LearningBoredCapturePanel
+        isOpen={showLearningBoredPanel}
+        passage={learningBoredPassage}
+        onClose={handleCloseLearningBoredPanel}
+        onClear={handleClearLearningBoredPassage}
       />
-      {!showStoryBoredPanel && storyBoredGenerationActive && storyBoredPassage && (
+      {learningBoredReaderEnabled && !showLearningBoredPanel && learningBoredPassage && (
         <button
           type='button'
           className='btn btn-primary fixed bottom-4 right-4 z-30 h-12 min-h-12 w-12 rounded-full p-0 shadow-xl'
-          aria-label={_('Open StoryBored scene')}
-          title={_('Open StoryBored scene')}
-          onClick={() => setShowStoryBoredPanel(true)}
+          aria-label={_('Open LearningBored passage preview')}
+          title={_('Open LearningBored passage preview')}
+          onClick={handleOpenLearningBoredPanel}
         >
-          <MdImageSearch className='size-5' />
+          <MdDashboard className='size-5' />
         </button>
       )}
     </div>
