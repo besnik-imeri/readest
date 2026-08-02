@@ -1,9 +1,4 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import {
-  GlobalWorkerOptions,
-  TextLayer,
-  getDocument,
-} from '../../../../public/vendor/pdfjs/pdf.min.mjs';
 
 const TWO_COLUMN_URL = new URL('../../fixtures/data/learningbored-two-column.pdf', import.meta.url)
   .href;
@@ -28,7 +23,12 @@ type SpanEvidence = {
   nextElement: string | null;
 };
 
-type TextLayerOptions = ConstructorParameters<typeof TextLayer>[0];
+type BrowserTextLayerOptions = {
+  textContentSource: unknown;
+  container: HTMLElement;
+  viewport: unknown;
+};
+
 type BrowserPdfDocument = {
   getPage(pageNumber: number): Promise<{
     streamTextContent(): unknown;
@@ -36,22 +36,52 @@ type BrowserPdfDocument = {
   }>;
 };
 
+type BrowserPdfJs = {
+  GlobalWorkerOptions: { workerSrc: string };
+  TextLayer: new (options: BrowserTextLayerOptions) => { render(): Promise<void> };
+  getDocument(options: { data: Uint8Array; isEvalSupported: boolean }): {
+    promise: Promise<BrowserPdfDocument>;
+  };
+};
+
+let pdfJs: BrowserPdfJs;
+
+async function loadBrowserPdfJs(): Promise<BrowserPdfJs> {
+  const globalWithPdfJs = globalThis as typeof globalThis & { pdfjsLib?: BrowserPdfJs };
+  if (globalWithPdfJs.pdfjsLib) return globalWithPdfJs.pdfjsLib;
+
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = '/vendor/pdfjs/pdf.min.mjs';
+  await new Promise<void>((resolve, reject) => {
+    script.addEventListener('load', () => resolve(), { once: true });
+    script.addEventListener('error', () => reject(new Error('Could not load browser PDF.js.')), {
+      once: true,
+    });
+    document.head.append(script);
+  });
+  script.remove();
+
+  if (!globalWithPdfJs.pdfjsLib) throw new Error('Browser PDF.js did not expose pdfjsLib.');
+  return globalWithPdfJs.pdfjsLib;
+}
+
 async function renderFirstPageTextLayer(url: string): Promise<HTMLElement> {
   const response = await fetch(url);
-  const loadingTask = getDocument({
+  const loadingTask = pdfJs.getDocument({
     data: new Uint8Array(await response.arrayBuffer()),
     isEvalSupported: false,
   });
-  const pdf = (await loadingTask.promise) as BrowserPdfDocument;
+  const pdf = await loadingTask.promise;
   const page = await pdf.getPage(1);
   const container = document.createElement('div');
   container.className = 'textLayer';
   container.style.setProperty('--total-scale-factor', '1');
   document.body.append(container);
-  const textLayer = new TextLayer({
-    textContentSource: (await page.streamTextContent()) as TextLayerOptions['textContentSource'],
+  const textLayer = new pdfJs.TextLayer({
+    textContentSource: await page.streamTextContent(),
     container,
-    viewport: page.getViewport({ scale: 1 }) as TextLayerOptions['viewport'],
+    viewport: page.getViewport({ scale: 1 }),
   });
   await textLayer.render();
   return container;
@@ -107,7 +137,8 @@ describe('LearningBored PDF text layer in Chromium', () => {
   let ocr: HTMLElement;
 
   beforeAll(async () => {
-    GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+    pdfJs = await loadBrowserPdfJs();
+    pdfJs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
     [twoColumn, code, ocr] = await Promise.all([
       renderFirstPageTextLayer(TWO_COLUMN_URL),
       renderFirstPageTextLayer(CODE_URL),
